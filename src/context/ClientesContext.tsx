@@ -23,6 +23,7 @@ export const ClienteProvider = ({ children }: { children?: ReactNode }) => {
       setError(null);
       const response = await api.get<Cliente[]>('/consulta'); // Usa tu instancia configurada
       setClientes(response.data);
+      console.log(response.data)
     } catch (error) {
       setError('Error al obtener los clientes');
       console.error('Error al obtener los clientes:', error);

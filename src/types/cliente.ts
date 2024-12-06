@@ -1,5 +1,5 @@
 export type Cliente = {
-    Numero: number; // Identificador único del cliente
+    Número: number; // Identificador único del cliente
     Nombre: string; // Nombre del cliente
     Apellido: string; // Apellido del cliente
     ListaPrecios: string; // Tipo de lista de precios del cliente

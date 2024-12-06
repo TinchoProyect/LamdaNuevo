@@ -1,5 +1,4 @@
 import { Header } from './components/Header'
-import { ClienteProvider } from './context/ClientesContext';
 import BusquedaCliente from './components/BusquedaCliente';
 
 function App() {
@@ -7,10 +6,9 @@ function App() {
   return (
     <>
       <Header />
-      <ClienteProvider>
-        {/* <BuscadorClientes /> */}
+      <div className="container mt-5 pt-5">
         <BusquedaCliente />
-      </ClienteProvider>
+      </div>
     </>
   )
 }
