@@ -2,49 +2,89 @@ import React, { useState } from 'react';
 import { useClientes } from '../context/ClientesContext';
 import { Cliente } from '../types/cliente';
 
+const MAX_RESULTS = 10; // Límite de clientes visibles
+
 const BusquedaCliente = () => {
-  const { clientes } = useClientes(); // Obtener los clientes del contexto
+  const { clientes, isLoading } = useClientes(); // Obtener los clientes y el estado de carga del contexto
   const [searchTerm, setSearchTerm] = useState<string>(''); // Estado local para la búsqueda
+  const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null); // Cliente seleccionado
 
   // Función para filtrar clientes según el término de búsqueda
-  const filteredClientes = clientes.filter((cliente: Cliente) =>
-    cliente.Numero.toString().includes(searchTerm) || // Busca por el número
-    cliente.Nombre.toLowerCase().includes(searchTerm.toLowerCase()) || // Busca por el nombre
-    cliente.Apellido.toLowerCase().includes(searchTerm.toLowerCase()) // Busca por el apellido
-  );
+  const filteredClientes = clientes.filter((cliente: Cliente) => {
+    const numero = cliente.Número ? cliente.Número.toString() : '';
+    const nombre = cliente.Nombre ? cliente.Nombre.toLowerCase() : '';
+    const apellido = cliente.Apellido ? cliente.Apellido.toLowerCase() : '';
+    return (
+      numero.includes(searchTerm) || // Busca por el número
+      nombre.includes(searchTerm.toLowerCase()) || // Busca por el nombre
+      apellido.includes(searchTerm.toLowerCase()) // Busca por el apellido
+    );
+  });
+
+  // Limitar los resultados mostrados
+  const limitedClientes = filteredClientes.slice(0, MAX_RESULTS);
+
+  // Función para manejar la selección de un cliente
+  const handleSelectCliente = (cliente: Cliente) => {
+    setSelectedCliente(cliente);
+  };
+
+  // Función para manejar el botón "Ver movimientos"
+  const handleVerMovimientos = () => {
+    if (selectedCliente) {
+      // Lógica para navegar o mostrar los movimientos del cliente
+      console.log(`Ver movimientos para el cliente:`, selectedCliente);
+      alert(`Movimientos del cliente ${selectedCliente.Nombre}`);
+    }
+  };
 
   return (
-    <div style={{ padding: '1rem', maxWidth: '600px', margin: '0 auto' }}>
-      <h2>Buscar Clientes</h2>
+    <div className="container mt-5 pt-5" style={{ maxWidth: '600px' }}>
+      <h2 className="text-center">Buscar Clientes</h2>
       <input
         type="text"
+        className="form-control mb-3"
         placeholder="Buscar por número, nombre o apellido"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)} // Actualiza el término de búsqueda
-        style={{
-          width: '100%',
-          padding: '0.5rem',
-          marginBottom: '1rem',
-          borderRadius: '4px',
-          border: '1px solid #ccc',
-        }}
       />
-      {filteredClientes.length > 0 ? (
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          {filteredClientes.map((cliente) => (
-            <li
-              key={cliente.Numero}
-              style={{
-                borderBottom: '1px solid #ddd',
-                padding: '0.5rem 0',
-              }}
-            >
-              <strong>{cliente.Nombre} {cliente.Apellido}</strong> - #{cliente.Numero}
-            </li>
-          ))}
-        </ul>
+      {isLoading ? (
+        <p className="text-center">Cargando clientes...</p>
       ) : (
-        <p>No se encontraron clientes</p>
+        <>
+          <ul className="list-group mb-3">
+            {limitedClientes.length > 0 ? (
+              <>
+                {limitedClientes.map((cliente: Cliente) => (
+                  <li
+                    key={cliente.Número}
+                    className={`list-group-item ${
+                      selectedCliente?.Número === cliente.Número ? 'active' : ''
+                    }`}
+                    onClick={() => handleSelectCliente(cliente)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <strong>{cliente.Nombre}</strong> - #{cliente.Número}
+                  </li>
+                ))}
+                {filteredClientes.length > MAX_RESULTS && (
+                  <li className="list-group-item text-muted text-center">
+                    Hay más resultados, refine su búsqueda.
+                  </li>
+                )}
+              </>
+            ) : (
+              <p className="text-center">No se encontraron clientes</p>
+            )}
+          </ul>
+          <button
+            className="btn btn-primary w-100"
+            onClick={handleVerMovimientos}
+            disabled={!selectedCliente} // Desactiva si no hay un cliente seleccionado
+          >
+            Ver Movimientos
+          </button>
+        </>
       )}
     </div>
   );
