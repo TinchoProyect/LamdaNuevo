@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useClientes } from '../context/ClientesContext';
+import { useMovimientoDetalles } from '../context/MovimientoDetalleContext';
 import { Cliente } from '../types/cliente';
 
 const MAX_RESULTS = 10; // Límite de clientes visibles
 
 const BusquedaCliente = () => {
   const { clientes, isLoading } = useClientes(); // Obtener los clientes y el estado de carga del contexto
+  const { fetchMovDetalles } = useMovimientoDetalles(); // Obtener la función para obtener los detalles de movimientos
   const [searchTerm, setSearchTerm] = useState<string>(''); // Estado local para la búsqueda
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null); // Cliente seleccionado
 
@@ -32,6 +34,7 @@ const BusquedaCliente = () => {
   // Función para manejar el botón "Ver movimientos"
   const handleVerMovimientos = () => {
     if (selectedCliente) {
+      fetchMovDetalles(selectedCliente.Número); // Llama a la función para obtener los detalles de movimientos
       // Lógica para navegar o mostrar los movimientos del cliente
       console.log(`Ver movimientos para el cliente:`, selectedCliente);
       alert(`Movimientos del cliente ${selectedCliente.Nombre}`);
