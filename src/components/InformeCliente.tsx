@@ -2,6 +2,8 @@ import React from 'react';
 import { useMovimientoDetalles } from '../context/MovimientoDetalleContext';
 import { useMovimientos } from '../context/MovimientoContext';
 import { Mov_Detalle } from '../types/movimiento_detalle';
+import { comprobanteMap } from '../utils/comprobanteMap';
+import { formatNumeroFactura } from '../utils/numeroFacturaMap';
 
 type InformeClienteProps = {
     onBack: () => void; // Prop para manejar la acción de volver
@@ -34,7 +36,7 @@ const InformeCliente = ({ onBack }: InformeClienteProps) => {
                 <li key={mov.codigo} className="list-group-item">
                   <h5>Movimiento #{mov.numero}</h5>
                   <p><strong>Tipo Comprobante:</strong> {mov.tipo_comprobante}</p>
-                  <p><strong>Nombre Comprobante:</strong> {mov.nombre_comprobante}</p>
+                  <p><strong>Nombre Comprobante:</strong> {comprobanteMap[mov.nombre_comprobante] || mov.nombre_comprobante}</p>
                   <p><strong>Fecha:</strong> {mov.fecha}</p>
                   <p><strong>Importe Neto:</strong> {mov.importe_neto}</p>
                   <p><strong>Importe Total:</strong> {mov.importe_total}</p>
@@ -55,8 +57,9 @@ const InformeCliente = ({ onBack }: InformeClienteProps) => {
                 <li key={mov.Codigo_Movimiento} className="list-group-item">
                   <h5>Detalle de Movimiento #{mov.Numero_Movimiento}</h5>
                   <p><strong>Tipo Comprobante:</strong> {mov.Tipo_Comprobante}</p>
-                  <p><strong>Nombre Comprobante:</strong> {mov.Nombre_Comprobante}</p>
+                  <p><strong>Nombre Comprobante:</strong> {comprobanteMap[mov.Nombre_Comprobante] || mov.Nombre_Comprobante}</p>
                   <p><strong>Fecha:</strong> {mov.Fecha_Movimiento}</p>
+                  <p><strong>Numero Factura:</strong>{formatNumeroFactura(mov.Punto_Venta_Detalle, mov.Numero_Movimiento)}</p>
                   <p><strong>Importe Neto:</strong> {mov.Importe_Neto_Movimiento}</p>
                   <p><strong>Importe Total:</strong> {mov.Importe_Total_Movimiento}</p>
                   <p><strong>Artículo:</strong> {mov.Articulo_Detalle}</p>

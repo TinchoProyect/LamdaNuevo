@@ -1,0 +1,16 @@
+export const comprobanteMap: { [key: string]: string } = {
+    'FA': 'Factura A',
+    'FB': 'Factura B',
+    'FC': 'Factura C',
+    'FE': 'Factura E',
+    'RB A': 'Recibo A',
+    'RB B': 'Recibo B',
+    'NC A': 'Nota de Crédito A',
+    'NC B': 'Nota de Crédito B',
+    'NC C': 'Nota de Crédito C',
+    'NC E': 'Nota de Crédito E',
+    'ND A': 'Nota de Débito A',
+    'ND B': 'Nota de Débito B',
+    'ND C': 'Nota de Débito C',
+    'ND E': 'Nota de Débito E',
+  };
