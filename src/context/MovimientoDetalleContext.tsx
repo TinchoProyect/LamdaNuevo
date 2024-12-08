@@ -5,7 +5,7 @@ import { Mov_Detalle } from '../types/movimiento_detalle';
 type MovimientoDetalleContextType = {
   movDetalles: Mov_Detalle[];
   setMovDetalles: (movDetalles: Mov_Detalle[]) => void;
-  isLoading: boolean;
+  isLoadingMovDetalles: boolean;
   fetchMovDetalles: (id: number) => Promise<void>;
 };
 
@@ -13,12 +13,12 @@ const MovimientoDetalleContext = createContext<MovimientoDetalleContextType | un
 
 export const MovimientoDetalleProvider = ({ children }: { children?: ReactNode }) => {
   const [movDetalles, setMovDetalles] = useState<Mov_Detalle[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoadingMovDetalles, setIsLoadingMovDetalles] = useState<boolean>(false);
   const [, setError] = useState<string | null>(null);
 
   const fetchMovDetalles = async (id: number) => {
     try {
-      setIsLoading(true);
+      setIsLoadingMovDetalles(true);
       setError(null);
       const response = await api.get<Mov_Detalle[]>(`/movimientos_detalles?clienteId=${id}`); // Usa tu instancia configurada
       setMovDetalles(response.data);
@@ -26,12 +26,12 @@ export const MovimientoDetalleProvider = ({ children }: { children?: ReactNode }
       setError('Error al obtener los detalles de movimientos');
       console.error('Error al obtener los detalles de movimientos:', error);
     } finally {
-      setIsLoading(false);
+      setIsLoadingMovDetalles(false);
     }
   };
 
   return (
-    <MovimientoDetalleContext.Provider value={{ movDetalles, setMovDetalles, isLoading, fetchMovDetalles }}>
+    <MovimientoDetalleContext.Provider value={{ movDetalles, setMovDetalles, isLoadingMovDetalles, fetchMovDetalles }}>
       {children}
     </MovimientoDetalleContext.Provider>
   );

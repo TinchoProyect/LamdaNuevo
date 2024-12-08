@@ -10,5 +10,5 @@ export type Mov_Detalle = {
     Descripcion_Detalle: string;
     Cantidad_Detalle: number;
     Punto_Venta_Detalle: number;
-    Efectivo: number | null;
+    Efectivo: string | null;
 }
