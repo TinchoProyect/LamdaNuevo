@@ -4,6 +4,7 @@ import './index.css'
 import { ClienteProvider } from './context/ClientesContext';
 import { MovimientoProvider } from './context/MovimientoContext';
 import { MovimientoDetalleProvider } from './context/MovimientoDetalleContext';
+import { SaldoProvider } from './context/SaldoContext.tsx';
 import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(
@@ -11,7 +12,9 @@ createRoot(document.getElementById('root')!).render(
     <ClienteProvider>
       <MovimientoProvider>
         <MovimientoDetalleProvider>
-          <App />
+          <SaldoProvider>
+            <App />
+          </SaldoProvider>
         </MovimientoDetalleProvider>
       </MovimientoProvider>
     </ClienteProvider>

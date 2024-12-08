@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useClientes } from '../context/ClientesContext';
 import { useMovimientos } from '../context/MovimientoContext';
 import { useMovimientoDetalles } from '../context/MovimientoDetalleContext';
+import { useSaldos } from '../context/SaldoContext';
+import { formatNumeroCliente } from '../utils/numeroClienteMap';
 import { Cliente } from '../types/cliente';
 import InformeCliente from './InformeCliente';
 
@@ -11,13 +13,14 @@ const BusquedaCliente = () => {
   const { clientes, isLoading } = useClientes(); // Obtener los clientes y el estado de carga del contexto
   const { fetchMovDetalles } = useMovimientoDetalles(); // Obtener la función para obtener los detalles de movimientos
   const { fetchMovimientos } = useMovimientos(); // Obtener la función para obtener los movimientos
+  const { fetchSaldo } = useSaldos(); // Obtener la función para obtener el saldo
   const [searchTerm, setSearchTerm] = useState<string>(''); // Estado local para la búsqueda
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null); // Cliente seleccionado
   const [showInforme, setShowInforme] = useState<boolean>(false); // Estado para mostrar los movimientos
 
   // Función para filtrar clientes según el término de búsqueda
   const filteredClientes = clientes.filter((cliente: Cliente) => {
-    const numero = cliente.Número ? cliente.Número.toString() : '';
+    const numero = formatNumeroCliente(cliente.Número);
     const nombre = cliente.Nombre ? cliente.Nombre.toLowerCase() : '';
     const apellido = cliente.Apellido ? cliente.Apellido.toLowerCase() : '';
     return (
@@ -40,6 +43,7 @@ const BusquedaCliente = () => {
     if (selectedCliente) {
       fetchMovDetalles(selectedCliente.Número); // Llama a la función para obtener los detalles de movimientos
       fetchMovimientos(selectedCliente.Número); // Llama a la función para obtener los movimientos
+      fetchSaldo(selectedCliente.Número); // Llama a la función para obtener el saldo
       setShowInforme(true); // Muestra el componente de movimientos
     }
   };
@@ -51,7 +55,7 @@ const BusquedaCliente = () => {
   return (
     <div className="container mt-5 pt-5">
       {showInforme ? (
-        <InformeCliente onBack={handleBack} />
+        <InformeCliente onBack={handleBack} cliente={selectedCliente}/>
       ) : (
         <>
           <h2 className="text-center mb-4">Buscar Clientes</h2>
@@ -82,7 +86,7 @@ const BusquedaCliente = () => {
                         onClick={() => handleSelectCliente(cliente)}
                         style={{ cursor: 'pointer' }}
                       >
-                        <strong>{cliente.Número}</strong> - {cliente.Nombre} {cliente.Apellido}
+                        <strong>{formatNumeroCliente(cliente.Número)}</strong> - {cliente.Nombre} {cliente.Apellido}
                       </li>
                     ))}
                     {filteredClientes.length > MAX_RESULTS && (

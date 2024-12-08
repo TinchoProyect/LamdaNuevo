@@ -1,19 +1,26 @@
 import { useMovimientoDetalles } from '../context/MovimientoDetalleContext';
 import { useMovimientos } from '../context/MovimientoContext';
+import { useSaldos } from '../context/SaldoContext';
 import { Mov_Detalle } from '../types/movimiento_detalle';
 import { comprobanteMap } from '../utils/comprobanteMap';
 import { formatNumeroFactura } from '../utils/numeroFacturaMap';
+import { Cliente } from '../types/cliente';
 import './InformeCliente.css';
+import { Movimiento } from '../types/movimiento';
 
 type InformeClienteProps = {
   onBack: () => void; // Prop para manejar la acción de volver
+  cliente: Cliente | null; // Prop para pasar el cliente seleccionado
 };
 
-const InformeCliente = ({ onBack }: InformeClienteProps) => {
+const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
   const { movDetalles, isLoadingMovDetalles } = useMovimientoDetalles();
   const { movimientos, isLoadingMov } = useMovimientos();
+  const { saldo } = useSaldos();
 
   const isLoading = isLoadingMovDetalles || isLoadingMov;
+
+  const saldoInicial = saldo ? saldo.Monto : 0;
 
   // Ordenar movimientos por fecha (más recientes primero)
   const sortedMovimientos = [...movimientos].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
@@ -39,9 +46,14 @@ const InformeCliente = ({ onBack }: InformeClienteProps) => {
 
   const movimientosPorMes = agruparPorMes();
 
+  const saldoFinal = calcularSaldo(movimientos, saldoInicial);
+
   return (
     <div className="container">
-      <h2 className="text-center mb-4">Movimientos del Cliente</h2>
+      <h2 className="text-center mb-4">Movimientos de {cliente?.Nombre}({cliente?.Número})</h2>
+      <h4 className="text-center mb-4">
+        Saldo: <span className="text-success">${saldoFinal.toFixed(2)}</span>
+      </h4>
       <button className="btn btn-secondary mb-4" onClick={onBack}>
         Volver
       </button>
@@ -109,6 +121,20 @@ const InformeCliente = ({ onBack }: InformeClienteProps) => {
       )}
     </div>
   );
+};
+
+const calcularSaldo = (movimientos: Movimiento[], saldoInicial: number) => {
+  return movimientos.reduce((saldo, mov) => {
+    console.log({saldoInicial})
+    if (['FA', 'FB', 'FC', 'FD'].includes(mov.nombre_comprobante)) {
+      // Las facturas suman al saldo
+      return saldo + mov.importe_total;
+    } else if (['RB A', 'RB B', 'NC A', 'NC B', 'NC C', 'NC E'].includes(mov.nombre_comprobante)) {
+      // Los recibos y notas de crédito restan del saldo
+      return saldo - mov.importe_total;
+    }
+    return saldo;
+  }, saldoInicial);
 };
 
 export default InformeCliente;
