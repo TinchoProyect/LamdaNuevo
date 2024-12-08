@@ -1,0 +1,14 @@
+.container {
+    font-size: 0.9rem;
+  }
+  h4 {
+    color: #4a4a4a;
+  }
+  .table {
+    margin-bottom: 0;
+  }
+  .table th,
+  .table td {
+    text-align: center;
+  }
+  
