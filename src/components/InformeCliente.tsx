@@ -6,8 +6,8 @@ import { comprobanteMap } from '../utils/comprobanteMap';
 import { formatNumeroFactura } from '../utils/numeroFacturaMap';
 
 type InformeClienteProps = {
-    onBack: () => void; // Prop para manejar la acción de volver
-  };
+  onBack: () => void; // Prop para manejar la acción de volver
+};
 
 const InformeCliente = ({ onBack }: InformeClienteProps) => {
   const { movDetalles, isLoadingMovDetalles } = useMovimientoDetalles(); // Obtener los detalles de movimientos del contexto
@@ -15,8 +15,17 @@ const InformeCliente = ({ onBack }: InformeClienteProps) => {
 
   const isLoading = isLoadingMovDetalles || isLoadingMov; // Combinar los estados de carga
 
+  const sortedMovimientos = [...movimientos].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()); // Ordenar los movimientos por fecha
+
+  const detallesPorMovimiento = movDetalles.reduce((acc, detalle) => {
+    const { Codigo_Movimiento } = detalle;
+    if (!acc[Codigo_Movimiento]) acc[Codigo_Movimiento] = [];
+    acc[Codigo_Movimiento].push(detalle);
+    return acc;
+  }, {} as Record<number, Mov_Detalle[]>);
+
   return (
-    <div className="container mt-5 pt-5" style={{ maxWidth: '800px' }}>
+    <div className="container mt-5 pt-5">
       <h2 className="text-center mb-4">Movimientos del Cliente</h2>
       <button className="btn btn-secondary mb-4" onClick={onBack}>
         Volver
@@ -31,46 +40,42 @@ const InformeCliente = ({ onBack }: InformeClienteProps) => {
         <>
           <h3 className="text-center mb-3">Movimientos</h3>
           <ul className="list-group mb-4">
-            {movimientos.length > 0 ? (
-              movimientos.map((mov) => (
+            {sortedMovimientos.length > 0 ? (
+              sortedMovimientos.map((mov) => (
                 <li key={mov.codigo} className="list-group-item">
-                  <h5>Movimiento #{mov.numero}</h5>
-                  <p><strong>Tipo Comprobante:</strong> {mov.tipo_comprobante}</p>
-                  <p><strong>Nombre Comprobante:</strong> {comprobanteMap[mov.nombre_comprobante] || mov.nombre_comprobante}</p>
-                  <p><strong>Fecha:</strong> {mov.fecha}</p>
-                  <p><strong>Importe Neto:</strong> {mov.importe_neto}</p>
+                  <p>{comprobanteMap[mov.nombre_comprobante] || mov.nombre_comprobante} ${mov.importe_total}</p>
+                  <p><strong>Numero Factura:</strong> {formatNumeroFactura(detallesPorMovimiento[mov.codigo]?.[0]?.Punto_Venta_Detalle, mov.numero)}</p>
+                  <p><strong>Fecha:</strong> {mov.fecha.split("T", 1)}</p>
                   <p><strong>Importe Total:</strong> {mov.importe_total}</p>
-                  <p><strong>Comentario:</strong> {mov.comentario}</p>
-                  <p><strong>Estado:</strong> {mov.estado}</p>
-                  <p><strong>Efectivo:</strong> {mov.efectivo}</p>
-                </li>
+                  {['FA', 'FB', 'FC', 'FD'].includes(mov.nombre_comprobante) && (
+                  <div className="mt-3">
+                    <h6>Detalles de Movimiento</h6>
+                    <div className="table-responsive">
+                      <table className="table table-striped table-bordered">
+                        <thead className="table-dark">
+                          <tr>
+                            <th>Artículo</th>
+                            <th>Descripción</th>
+                            <th>Cantidad</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {detallesPorMovimiento[mov.codigo]?.map((detalle) => (
+                            <tr key={detalle.Numero_Movimiento}>
+                              <td>{detalle.Articulo_Detalle}</td>
+                              <td>{detalle.Descripcion_Detalle}</td>
+                              <td>{detalle.Cantidad_Detalle}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </li>
               ))
             ) : (
-              <p className="text-center">No se encontraron movimientos</p>
-            )}
-          </ul>
-
-          <h3 className="text-center mb-3">Detalles de Movimientos</h3>
-          <ul className="list-group">
-            {movDetalles.length > 0 ? (
-              movDetalles.map((mov: Mov_Detalle) => (
-                <li key={mov.Codigo_Movimiento} className="list-group-item">
-                  <h5>Detalle de Movimiento #{mov.Numero_Movimiento}</h5>
-                  <p><strong>Tipo Comprobante:</strong> {mov.Tipo_Comprobante}</p>
-                  <p><strong>Nombre Comprobante:</strong> {comprobanteMap[mov.Nombre_Comprobante] || mov.Nombre_Comprobante}</p>
-                  <p><strong>Fecha:</strong> {mov.Fecha_Movimiento}</p>
-                  <p><strong>Numero Factura:</strong>{formatNumeroFactura(mov.Punto_Venta_Detalle, mov.Numero_Movimiento)}</p>
-                  <p><strong>Importe Neto:</strong> {mov.Importe_Neto_Movimiento}</p>
-                  <p><strong>Importe Total:</strong> {mov.Importe_Total_Movimiento}</p>
-                  <p><strong>Artículo:</strong> {mov.Articulo_Detalle}</p>
-                  <p><strong>Descripción:</strong> {mov.Descripcion_Detalle}</p>
-                  <p><strong>Cantidad:</strong> {mov.Cantidad_Detalle}</p>
-                  <p><strong>Punto de Venta:</strong> {mov.Punto_Venta_Detalle}</p>
-                  <p><strong>Efectivo:</strong> {mov.Efectivo}</p>
-                </li>
-              ))
-            ) : (
-              <p className="text-center">No se encontraron detalles de movimientos</p>
+              <li className="list-group-item">No hay movimientos disponibles.</li>
             )}
           </ul>
         </>

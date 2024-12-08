@@ -49,7 +49,7 @@ const BusquedaCliente = () => {
   };
 
   return (
-    <div className="container mt-5 pt-5" style={{ maxWidth: '800px' }}>
+    <div className="container mt-5 pt-5">
       {showInforme ? (
         <InformeCliente onBack={handleBack} />
       ) : (
@@ -82,7 +82,7 @@ const BusquedaCliente = () => {
                         onClick={() => handleSelectCliente(cliente)}
                         style={{ cursor: 'pointer' }}
                       >
-                        <strong>{cliente.Nombre}</strong> - #{cliente.Número}
+                        <strong>{cliente.Número}</strong> - {cliente.Nombre} {cliente.Apellido}
                       </li>
                     ))}
                     {filteredClientes.length > MAX_RESULTS && (
