@@ -13,7 +13,7 @@ const BusquedaCliente = () => {
   const { clientes, isLoading } = useClientes(); // Obtener los clientes y el estado de carga del contexto
   const { fetchMovDetalles } = useMovimientoDetalles(); // Obtener la función para obtener los detalles de movimientos
   const { fetchMovimientos } = useMovimientos(); // Obtener la función para obtener los movimientos
-  const { fetchSaldo } = useSaldos(); // Obtener la función para obtener el saldo
+  const { fetchSaldo, setSaldo } = useSaldos(); // Obtener la función para obtener el saldo
   const [searchTerm, setSearchTerm] = useState<string>(''); // Estado local para la búsqueda
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null); // Cliente seleccionado
   const [showInforme, setShowInforme] = useState<boolean>(false); // Estado para mostrar los movimientos
@@ -50,6 +50,7 @@ const BusquedaCliente = () => {
 
   const handleBack = () => {
     setShowInforme(false); // Vuelve a mostrar el componente de búsqueda de clientes
+    setSaldo(null);
   };
 
   return (

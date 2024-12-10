@@ -16,10 +16,26 @@ type InformeClienteProps = {
 const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
   const { movDetalles, isLoadingMovDetalles } = useMovimientoDetalles();
   const { movimientos, isLoadingMov } = useMovimientos();
-  const { saldo } = useSaldos();
+  const { saldo, isLoadingSaldo } = useSaldos();
 
-  const isLoading = isLoadingMovDetalles || isLoadingMov;
+  const isLoading = isLoadingMovDetalles || isLoadingMov || isLoadingSaldo;
 
+  const Lamda = {
+    titular: "MARTIN IGNACIO SERRANO",
+    dni: 24892174,
+    cuit: "23-24892174-9",
+    tipoDeCuenta: "Caja de ahorro en pesos",
+    numeroDeCuenta:  "4007844-1 373-4",
+    cbu: "0070373230004007844141",
+    alias: "LAMDA.SER.MARTIN"
+  } 
+
+    // Función auxiliar para capitalizar la primera letra
+  const capitalizeFirstLetter = (string: string) => {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  };
+
+  // Obtener el saldo inicial del contexto o establecerlo en 0 si no está disponible
   const saldoInicial = saldo ? saldo.Monto : 0;
 
   // Ordenar movimientos por fecha (más recientes primero)
@@ -49,14 +65,25 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
   const saldoFinal = calcularSaldo(movimientos, saldoInicial);
 
   return (
-    <div className="container">
-      <h2 className="text-center mb-4">Movimientos de {cliente?.Nombre}({cliente?.Número})</h2>
+    <div className="container m-0 p-0">
+      <h2 className="text-center mb-4">Movimientos de {cliente?.Nombre} ({cliente?.Número.toString().padStart(3, '0')})</h2>
       <h4 className="text-center mb-4">
         Saldo: <span className="text-success">${saldoFinal.toFixed(2)}</span>
       </h4>
-      <button className="btn btn-secondary mb-4" onClick={onBack}>
+      <button className="btn btn-secondary mb-4 no-print" onClick={onBack}>
         Volver
       </button>
+
+      <div className="mb-4">
+        <h4 className="text-center">Datos de Lamda</h4>
+        <p><strong>Titular:</strong> {Lamda.titular}</p>
+        <p><strong>DNI:</strong> {Lamda.dni}</p>
+        <p><strong>CUIT:</strong> {Lamda.cuit}</p>
+        <p><strong>Tipo de Cuenta:</strong> {Lamda.tipoDeCuenta}</p>
+        <p><strong>Numero de Cuenta:</strong> {Lamda.numeroDeCuenta}</p>
+        <p><strong>CBU:</strong> {Lamda.cbu}</p>
+        <p><strong>Alias:</strong> {Lamda.alias}</p>
+      </div>
 
       {isLoading ? (
         <div className="d-flex justify-content-center align-items-center" style={{ height: '200px' }}>
@@ -70,7 +97,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
             <div key={mesYAnio} className="mb-4">
               {/* Título del mes */}
               <h4 className="text-secondary mb-3">
-                {new Date(movimientos[0].fecha).toLocaleDateString('es-AR', { year: 'numeric', month: 'long' })}
+                {capitalizeFirstLetter(new Date(movimientos[0].fecha).toLocaleDateString('es-AR', { year: 'numeric', month: 'long' }))}
               </h4>
 
               {/* Listado de movimientos */}
@@ -83,7 +110,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                         <span className="text-success">${mov.importe_total.toFixed(2)}</span>
                       </h5>
                       <p>
-                        <strong>Número Factura:</strong>{' '}
+                        <strong>Número:</strong>{' '}
                         {formatNumeroFactura(detallesPorMovimiento[mov.codigo]?.[0]?.Punto_Venta_Detalle, mov.numero)}
                       </p>
                       <p>
@@ -125,7 +152,6 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
 
 const calcularSaldo = (movimientos: Movimiento[], saldoInicial: number) => {
   return movimientos.reduce((saldo, mov) => {
-    console.log({saldoInicial})
     if (['FA', 'FB', 'FC', 'FD'].includes(mov.nombre_comprobante)) {
       // Las facturas suman al saldo
       return saldo + mov.importe_total;
