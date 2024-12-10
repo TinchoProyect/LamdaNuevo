@@ -11,9 +11,3 @@
   .table td {
     text-align: center;
   }
-/* Estilos de impresión */
-@media print {
-  .no-print {
-    display: none;
-  }
-}
