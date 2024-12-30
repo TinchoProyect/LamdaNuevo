@@ -1,7 +1,139 @@
-header {
-    width: 100%;
-    top: 0;
-    left: 0;
-    z-index: 1000;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
-  }
+.header-container {
+    background: linear-gradient(to right, #ffffff, #f8f9fa);
+    border-bottom: 1px solid #e0e0e0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    padding: 1rem 0;
+}
+
+.header-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.header-main {
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+.logo-section {
+    display: flex;
+    align-items: flex-start;
+}
+
+.logo-wrapper {
+    display: flex;
+    align-items: flex-start;
+    gap: 2rem;
+}
+
+.logo {
+    width: auto;
+    height: 140px;
+    object-fit: contain;
+}
+
+.alias-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+    padding: 0.5rem 1rem;
+    margin-top: -1rem;
+}
+
+.info-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.info-column.left {
+    padding-left: 0.5rem;
+}
+
+.info-column.right {
+    padding-right: 0.5rem;
+}
+
+.info-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.info-label {
+    color: #666;
+    font-weight: 500;
+    min-width: fit-content;
+}
+
+.info-value {
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.alias-container .info-label {
+    font-size: 1.1rem;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.alias-value {
+    font-size: 1.3rem;
+    color: #3498db;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .header-main {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .logo-section {
+        align-items: center;
+    }
+
+    .logo-wrapper {
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .logo {
+        height: 120px;
+    }
+
+    .alias-container {
+        padding-top: 0;
+        justify-content: center;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-top: 0;
+    }
+
+    .info-column.left,
+    .info-column.right {
+        padding: 0;
+    }
+
+    .info-row {
+        justify-content: space-between;
+    }
+}

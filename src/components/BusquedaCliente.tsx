@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useClientes } from '../context/ClientesContext';
 import { useMovimientos } from '../context/MovimientoContext';
 import { useMovimientoDetalles } from '../context/MovimientoDetalleContext';
@@ -6,78 +6,74 @@ import { useSaldos } from '../context/SaldoContext';
 import { formatNumeroCliente } from '../utils/numeroClienteMap';
 import { Cliente } from '../types/cliente';
 import InformeCliente from './InformeCliente';
+import './BusquedaCliente.css';
 
-const MAX_RESULTS = 10; // Límite de clientes visibles
+const MAX_RESULTS = 10;
 
 const BusquedaCliente = () => {
-  const { clientes, isLoading } = useClientes(); // Obtener los clientes y el estado de carga del contexto
-  const { fetchMovDetalles } = useMovimientoDetalles(); // Obtener la función para obtener los detalles de movimientos
-  const { fetchMovimientos } = useMovimientos(); // Obtener la función para obtener los movimientos
-  const { fetchSaldo, setSaldo } = useSaldos(); // Obtener la función para obtener el saldo
-  const [searchTerm, setSearchTerm] = useState<string>(''); // Estado local para la búsqueda
-  const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null); // Cliente seleccionado
-  const [showInforme, setShowInforme] = useState<boolean>(false); // Estado para mostrar los movimientos
+  const { clientes, isLoading } = useClientes();
+  const { fetchMovDetalles } = useMovimientoDetalles();
+  const { fetchMovimientos } = useMovimientos();
+  const { fetchSaldo, setSaldo } = useSaldos();
+  
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
+  const [showInforme, setShowInforme] = useState<boolean>(false);
 
-  // Función para filtrar clientes según el término de búsqueda
-  const filteredClientes = clientes.filter((cliente: Cliente) => {
+  // Filtrar clientes basado en el término de búsqueda
+  const filteredClientes = searchTerm ? clientes.filter((cliente: Cliente) => {
     const numero = formatNumeroCliente(cliente.Número);
-    const nombre = cliente.Nombre ? cliente.Nombre.toLowerCase() : '';
-    const apellido = cliente.Apellido ? cliente.Apellido.toLowerCase() : '';
-    return (
-      numero.includes(searchTerm) || // Busca por el número
-      nombre.includes(searchTerm.toLowerCase()) || // Busca por el nombre
-      apellido.includes(searchTerm.toLowerCase()) // Busca por el apellido
-    );
-  });
+    const nombre = cliente.Nombre?.toLowerCase() || '';
+    const apellido = cliente.Apellido?.toLowerCase() || '';
+    const searchLower = searchTerm.toLowerCase();
+    
+    return numero.includes(searchTerm) || 
+           nombre.includes(searchLower) || 
+           apellido.includes(searchLower);
+  }) : [];
 
-  // Limitar los resultados mostrados
   const limitedClientes = filteredClientes.slice(0, MAX_RESULTS);
 
-  // Función para manejar la selección de un cliente
   const handleSelectCliente = (cliente: Cliente) => {
     setSelectedCliente(cliente);
+    setSearchTerm(''); // Limpiar el campo de búsqueda al seleccionar
   };
 
-  // Función para manejar el botón "Ver movimientos"
   const handleVerMovimientos = () => {
     if (selectedCliente) {
-      fetchMovDetalles(selectedCliente.Número); // Llama a la función para obtener los detalles de movimientos
-      fetchMovimientos(selectedCliente.Número); // Llama a la función para obtener los movimientos
-      fetchSaldo(selectedCliente.Número); // Llama a la función para obtener el saldo
-      setShowInforme(true); // Muestra el componente de movimientos
+      fetchMovDetalles(selectedCliente.Número);
+      fetchMovimientos(selectedCliente.Número);
+      fetchSaldo(selectedCliente.Número);
+      setShowInforme(true);
     }
   };
 
   const handleBack = () => {
-    setShowInforme(false); // Vuelve a mostrar el componente de búsqueda de clientes
+    setShowInforme(false);
     setSaldo(null);
   };
 
   return (
     <div className="container mt-5 pt-5">
       {showInforme ? (
-        <InformeCliente onBack={handleBack} cliente={selectedCliente}/>
+        <InformeCliente onBack={handleBack} cliente={selectedCliente} />
       ) : (
-        <>
+        <div className="search-container">
           <h2 className="text-center mb-4">Buscar Clientes</h2>
-          <input
-            type="text"
-            className="form-control mb-4"
-            placeholder="Buscar por número, nombre o apellido"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)} // Actualiza el término de búsqueda
-          />
-          {isLoading ? (
-            <div className="d-flex justify-content-center align-items-center" style={{ height: '200px' }}>
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Cargando...</span>
-              </div>
-            </div>
-          ) : (
-            <>
-              <ul className="list-group mb-3">
+          
+          <div className="search-wrapper">
+            <input
+              type="text"
+              className="form-control search-input"
+              placeholder="Buscar por número, nombre o apellido"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+
+            {searchTerm && !isLoading && (
+              <div className="clientes-list-container">
                 {limitedClientes.length > 0 ? (
-                  <>
+                  <ul className="list-group">
                     {limitedClientes.map((cliente: Cliente) => (
                       <li
                         key={cliente.Número}
@@ -85,7 +81,6 @@ const BusquedaCliente = () => {
                           selectedCliente?.Número === cliente.Número ? 'active' : ''
                         }`}
                         onClick={() => handleSelectCliente(cliente)}
-                        style={{ cursor: 'pointer' }}
                       >
                         <strong>{formatNumeroCliente(cliente.Número)}</strong> - {cliente.Nombre} {cliente.Apellido}
                       </li>
@@ -95,21 +90,31 @@ const BusquedaCliente = () => {
                         Hay más resultados, refine su búsqueda.
                       </li>
                     )}
-                  </>
+                  </ul>
                 ) : (
-                  <p className="text-center">No se encontraron clientes</p>
+                  <p className="text-center no-results">No se encontraron clientes</p>
                 )}
-              </ul>
-              <button
-                className="btn btn-primary w-100"
-                onClick={handleVerMovimientos}
-                disabled={!selectedCliente} // Desactiva si no hay un cliente seleccionado
-              >
-                Ver Movimientos
-              </button>
-            </>
+              </div>
+            )}
+          </div>
+
+          {selectedCliente && (
+            <div className="selected-client mt-3 mb-3">
+              <h5>Cliente seleccionado:</h5>
+              <p>
+                <strong>{formatNumeroCliente(selectedCliente.Número)}</strong> - {selectedCliente.Nombre} {selectedCliente.Apellido}
+              </p>
+            </div>
           )}
-        </>
+
+          <button
+            className="btn btn-primary w-100 mt-3"
+            onClick={handleVerMovimientos}
+            disabled={!selectedCliente}
+          >
+            Ver Movimientos
+          </button>
+        </div>
       )}
     </div>
   );

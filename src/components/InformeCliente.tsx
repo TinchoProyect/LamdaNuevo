@@ -9,8 +9,8 @@ import './InformeCliente.css';
 import { Movimiento } from '../types/movimiento';
 
 type InformeClienteProps = {
-  onBack: () => void; // Prop para manejar la acción de volver
-  cliente: Cliente | null; // Prop para pasar el cliente seleccionado
+  onBack: () => void;
+  cliente: Cliente | null;
 };
 
 const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
@@ -20,17 +20,16 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
 
   const isLoading = isLoadingMovDetalles || isLoadingMov || isLoadingSaldo;
 
-  const Lamda = {
-    titular: "MARTIN IGNACIO SERRANO",
-    dni: 24892174,
-    cuit: "23-24892174-9",
-    tipoDeCuenta: "Caja de ahorro en pesos",
-    numeroDeCuenta:  "4007844-1 373-4",
-    cbu: "0070373230004007844141",
-    alias: "LAMDA.SER.MARTIN"
-  } 
+  // Formateador para números en formato regional argentino
+  const formatter = new Intl.NumberFormat('es-AR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
-    // Función auxiliar para capitalizar la primera letra
+  // Obtener la fecha actual
+  const fechaActual = new Date().toLocaleDateString('es-AR');
+
+  // Función auxiliar para capitalizar la primera letra
   const capitalizeFirstLetter = (string: string) => {
     return string.charAt(0).toUpperCase() + string.slice(1);
   };
@@ -61,29 +60,26 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
   };
 
   const movimientosPorMes = agruparPorMes();
-
   const saldoFinal = calcularSaldo(movimientos, saldoInicial);
 
   return (
     <div className="container m-0 p-0">
-      <h2 className="text-center mb-4">Movimientos de {cliente?.Nombre} ({cliente?.Número.toString().padStart(3, '0')})</h2>
-      <h4 className="text-center mb-4">
-        Saldo: <span className="text-success">${saldoFinal.toFixed(2)}</span>
-      </h4>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2 className="mb-0">
+          Movimientos de {cliente?.Nombre} {cliente?.Apellido} 
+          <span className="text-muted ms-2">({cliente?.Número.toString().padStart(3, '0')})</span>
+        </h2>
+        <div>
+          <h4 className="mb-0">
+            Saldo: <span className="text-success">${formatter.format(saldoFinal)}</span>
+          </h4>
+          <small className="text-muted">({fechaActual})</small>
+        </div>
+      </div>
+      
       <button className="btn btn-secondary mb-4 no-print" onClick={onBack}>
         Volver
       </button>
-
-      <div className="mb-4">
-        <h4 className="text-center">Datos de Lamda</h4>
-        <p><strong>Titular:</strong> {Lamda.titular}</p>
-        <p><strong>DNI:</strong> {Lamda.dni}</p>
-        <p><strong>CUIT:</strong> {Lamda.cuit}</p>
-        <p><strong>Tipo de Cuenta:</strong> {Lamda.tipoDeCuenta}</p>
-        <p><strong>Numero de Cuenta:</strong> {Lamda.numeroDeCuenta}</p>
-        <p><strong>CBU:</strong> {Lamda.cbu}</p>
-        <p><strong>Alias:</strong> {Lamda.alias}</p>
-      </div>
 
       {isLoading ? (
         <div className="d-flex justify-content-center align-items-center" style={{ height: '200px' }}>
@@ -95,19 +91,17 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
         <>
           {Object.entries(movimientosPorMes).map(([mesYAnio, movimientos]) => (
             <div key={mesYAnio} className="mb-4">
-              {/* Título del mes */}
               <h4 className="text-secondary mb-3">
                 {capitalizeFirstLetter(new Date(movimientos[0].fecha).toLocaleDateString('es-AR', { year: 'numeric', month: 'long' }))}
               </h4>
 
-              {/* Listado de movimientos */}
               {movimientos.map((mov) => (
                 <div key={mov.codigo} className="mb-4">
                   <div className="border p-3 rounded bg-light">
                     <div className="justify-content-between d-flex">
                       <h5>
                         {comprobanteMap[mov.nombre_comprobante] || mov.nombre_comprobante}{' '}
-                        <span className="text-success">${mov.importe_total.toFixed(2)}</span>
+                        <span className="text-success">${formatter.format(mov.importe_total)}</span>
                       </h5>
                       <p>
                         <strong>Número:</strong>{' '}
@@ -153,10 +147,8 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
 const calcularSaldo = (movimientos: Movimiento[], saldoInicial: number) => {
   return movimientos.reduce((saldo, mov) => {
     if (['FA', 'FB', 'FC', 'FD'].includes(mov.nombre_comprobante)) {
-      // Las facturas suman al saldo
       return saldo + mov.importe_total;
     } else if (['RB A', 'RB B', 'NC A', 'NC B', 'NC C', 'NC E'].includes(mov.nombre_comprobante)) {
-      // Los recibos y notas de crédito restan del saldo
       return saldo - mov.importe_total;
     }
     return saldo;

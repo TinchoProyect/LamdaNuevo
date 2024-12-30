@@ -1,0 +1,17 @@
+.search-input-wrapper {
+  position: relative;
+}
+
+.search-input {
+  border-radius: 8px;
+  border: 1px solid #ced4da;
+  padding: 12px 16px;
+  font-size: 1rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.search-input:focus {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  outline: none;
+}
