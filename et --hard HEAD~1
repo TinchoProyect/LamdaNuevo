@@ -1,0 +1,120 @@
+[33mcommit eae7d822e481fb944a6e0316244e795b321b7334[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: Martin Ignacio Serrano <miserrano75@gmail.com>
+Date:   Mon Jan 6 18:14:17 2025 -0300
+
+    [test]
+
+[33mcommit 303c2ab2c0934db3bb0e61d9a564fd84c3f8121b[m
+Merge: b02a20e 74c1423
+Author: Martin Ignacio Serrano <miserrano75@gmail.com>
+Date:   Mon Dec 30 00:38:17 2024 -0300
+
+    Primer commit en mi repositorio personal
+
+[33mcommit b02a20e7a36d9068f55ae7a9b390df1735479e1e[m
+Author: Martin Ignacio Serrano <miserrano75@gmail.com>
+Date:   Mon Dec 30 00:18:11 2024 -0300
+
+    Descripción del cambio realizado
+
+[33mcommit 74c1423031465a2cea716086b0ba5122f155e6e1[m
+Author: Juan Ignacio Lezcano <tky.juani@gmail.com>
+Date:   Tue Dec 10 18:37:18 2024 -0300
+
+    [fix]: html
+
+[33mcommit e2810629b3f518365ffdd063f2bae6b5eafb7966[m
+Author: Juan Ignacio Lezcano <tky.juani@gmail.com>
+Date:   Tue Dec 10 18:35:00 2024 -0300
+
+    [fix]: visual
+
+[33mcommit 18d0d96c84a936738cda1363f9ab6e4bac27a8e2[m
+Author: Juan Ignacio Lezcano <tky.juani@gmail.com>
+Date:   Tue Dec 10 16:57:43 2024 -0300
+
+    [fix]: fix style
+
+[33mcommit a01561d71b24a0a19ed5ec5407954699e6923c9d[m
+Author: Juan Ignacio Lezcano <tky.juani@gmail.com>
+Date:   Tue Dec 10 13:04:37 2024 -0300
+
+    [fix]: Impresion sin boton, letras de meses en mayuscula
+
+[33mcommit 1d35b4acf9cad8c91d2c7fc7df3fb4bd85aedcb3[m
+Author: Juan Ignacio Lezcano <tky.juani@gmail.com>
+Date:   Sun Dec 8 16:10:59 2024 -0300
+
+    [feat]: Agrego Saldo, Contexto, numeros formato '000'
+
+[33mcommit 180313278470bfa9eacad4d5f084e83012f82366[m
+Author: Juan Ignacio Lezcano <tky.juani@gmail.com>
+Date:   Sun Dec 8 13:19:24 2024 -0300
+
+    [feat]: Estilizacion de Informe
+
+[33mcommit 61d55cfa79ff2c7d7bedb872c64712d3bef1266b[m
+Author: Juan Ignacio Lezcano <tky.juani@gmail.com>
+Date:   Sun Dec 8 13:01:45 2024 -0300
+
+    [feat]: Muestreo de movimientos y detalles correctamente, logica de Recibos, Tabla de detalles
+
+[33mcommit c1818215fe63ae5763193aa352e9f8e311f398d9[m
+Author: Juan Ignacio Lezcano <tky.juani@gmail.com>
+Date:   Sun Dec 8 10:58:06 2024 -0300
+
+    [feat]: numeroFactura, InformeCliente backup
+
+[33mcommit 7361112549b55ce7e3e97b3fa6e2b88683481180[m
+Author: Juan Ignacio Lezcano <tky.juani@gmail.com>
+Date:   Sun Dec 8 00:12:36 2024 -0300
+
+    [feat]: Movimiento Context, Type y actualizacion de BusquedaCliente.
+
+[33mcommit 633bee13c5b9b06093e87030cb93ce81797f0a79[m
+Author: Juan Ignacio Lezcano <tky.juani@gmail.com>
+Date:   Fri Dec 6 19:03:58 2024 -0300
+
+    [fix: error tipeo]
+
+[33mcommit 82a6ab3cea5260c551e32d3ff61b4a76e0f506a2[m
+Author: Juan Ignacio Lezcano <tky.juani@gmail.com>
+Date:   Fri Dec 6 19:02:22 2024 -0300
+
+    [feat: Cuando se presione verMovimientos, se guarda en el Context los movimientos y detalles del cliente seleccionado]
+
+[33mcommit 87d54b3eca318a7eb19560cea1e761d93ab27143[m
+Author: Juan Ignacio Lezcano <tky.juani@gmail.com>
+Date:   Fri Dec 6 18:59:59 2024 -0300
+
+    [feat: busqueda limitada hasta 10 clientes, movimiento detalles query]
+
+[33mcommit 3e5cc9b580ea87426bdff19ef721840a7ced619d[m
+Author: Juan Ignacio Lezcano <tky.juani@gmail.com>
+Date:   Fri Dec 6 18:58:31 2024 -0300
+
+    [feat: Permite buscar por clientes y seleccionar uno]
+
+[33mcommit 890d02386fbfc85bbf45c2d1c639219ad3f5e648[m
+Author: Juan Ignacio Lezcano <tky.juani@gmail.com>
+Date:   Fri Dec 6 00:20:30 2024 -0300
+
+    Creacion del Context de Clientes
+
+[33mcommit 05b36831c6e3887333947913f506160343db0ab2[m
+Author: Juan Ignacio Lezcano <tky.juani@gmail.com>
+Date:   Fri Dec 6 00:19:48 2024 -0300
+
+    Instancia de axios y type Cliente
+
+[33mcommit 9456c2c34cfddf6aa81f49b4b9724331a2347051[m
+Author: Juan Ignacio Lezcano <tky.juani@gmail.com>
+Date:   Fri Dec 6 00:19:01 2024 -0300
+
+    Axios install
+
+[33mcommit a6adda9b48d578ac1247a01ccbed5107573e15e7[m
+Author: Juan Ignacio Lezcano <tky.juani@gmail.com>
+Date:   Thu Dec 5 19:58:03 2024 -0300
+
+    first commit
