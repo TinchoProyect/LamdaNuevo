@@ -138,6 +138,25 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
               ))}
             </div>
           ))}
+          {/* Renderizar saldo inicial al final del formulario */}
+          <div className="mb-4">
+            <div className="border p-3 rounded bg-light">
+              <h5>
+                <strong>Saldo Inicial:</strong>{' '}
+                <span className="text-success">${formatter.format(saldoInicial)}</span>
+              </h5>
+              {saldo?.Fecha ? ( // Mostrar la fecha correcta del saldo inicial con ajuste manual para zona horaria
+                <p>
+                  <strong>Fecha:</strong>{' '}
+                  {(() => {
+                    const fecha = new Date(saldo.Fecha); // Convertir a objeto Date
+                    fecha.setHours(fecha.getHours() + 3); // Ajustar manualmente a UTC-3
+                    return fecha.toLocaleDateString('es-AR');
+                  })()}
+                </p>
+              ) : null}
+            </div>
+          </div>
         </>
       )}
     </div>
