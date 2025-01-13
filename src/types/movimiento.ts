@@ -12,4 +12,5 @@ export type Movimiento = {
     comentario: string;
     estado: number;
     efectivo: string | null;
-}
+    índice: number; // Nuevo campo agregado para numerar los movimientos
+};

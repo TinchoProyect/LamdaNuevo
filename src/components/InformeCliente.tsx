@@ -40,6 +40,12 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
   // Ordenar movimientos por fecha (más recientes primero)
   const sortedMovimientos = [...movimientos].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
+  // Asignar un índice a cada movimiento en el orden correcto
+  const movimientosConIndice = sortedMovimientos.map((mov, index) => ({
+    ...mov,
+    indice: index + 1,
+  }));
+
   // Agrupar detalles por movimiento
   const detallesPorMovimiento = movDetalles.reduce((acc, detalle) => {
     const { Codigo_Movimiento } = detalle;
@@ -50,17 +56,17 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
 
   // Función para agrupar movimientos por mes y año
   const agruparPorMes = () => {
-    return sortedMovimientos.reduce((acc, mov) => {
+    return movimientosConIndice.reduce((acc, mov) => {
       const [year, month] = mov.fecha.split('-');
       const mesYAnio = `${year}-${month}`;
       if (!acc[mesYAnio]) acc[mesYAnio] = [];
       acc[mesYAnio].push(mov);
       return acc;
-    }, {} as Record<string, typeof movimientos>);
+    }, {} as Record<string, typeof movimientosConIndice>);
   };
 
   const movimientosPorMes = agruparPorMes();
-  const saldoFinal = calcularSaldo(movimientos, saldoInicial);
+  const saldoFinal = calcularSaldo(movimientosConIndice, saldoInicial);
 
   return (
     <div className="container m-0 p-0">
@@ -110,6 +116,9 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                       <p>
                         <strong>Fecha:</strong> {new Date(mov.fecha).toLocaleDateString('es-AR')}
                       </p>
+                      <p>
+                        <strong>Índice:</strong> {mov.indice}
+                      </p>
                     </div>
                     {['FA', 'FB', 'FC', 'FD'].includes(mov.nombre_comprobante) && (
                       <div>
@@ -145,6 +154,9 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                 <strong>Saldo Inicial:</strong>{' '}
                 <span className="text-success">${formatter.format(saldoInicial)}</span>
               </h5>
+              <p>
+                <strong>Índice:</strong> 1
+              </p>
               {saldo?.Fecha ? ( // Mostrar la fecha correcta del saldo inicial con ajuste manual para zona horaria
                 <p>
                   <strong>Fecha:</strong>{' '}
