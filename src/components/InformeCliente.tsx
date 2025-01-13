@@ -40,10 +40,10 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
   // Ordenar movimientos por fecha (más recientes primero)
   const sortedMovimientos = [...movimientos].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
-  // Asignar un índice a cada movimiento en el orden correcto
-  const movimientosConIndice = sortedMovimientos.map((mov, index) => ({
+  // Asignar un índice a cada movimiento en el orden correcto (invertido)
+  const movimientosConIndice = sortedMovimientos.map((mov, index, array) => ({
     ...mov,
-    indice: index + 1,
+    indice: array.length - index + 1,
   }));
 
   // Agrupar detalles por movimiento
