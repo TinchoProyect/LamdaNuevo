@@ -120,7 +120,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                         <strong>Índice:</strong> {mov.indice}
                       </p>
                     </div>
-                    {['FA', 'FB', 'FC', 'FD'].includes(mov.nombre_comprobante) && (
+                    {['FA', 'FB', 'FC','FE' ,'FD'].includes(mov.nombre_comprobante) && (
                       <div>
                         <table className="table table-bordered mt-3">
                           <thead>
@@ -177,9 +177,9 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
 
 const calcularSaldo = (movimientos: Movimiento[], saldoInicial: number) => {
   return movimientos.reduce((saldo, mov) => {
-    if (['FA', 'FB', 'FC', 'FD'].includes(mov.nombre_comprobante)) {
+    if (['FA', 'FB','FE','FC', 'FD', 'N/C A', 'N/C B', 'N/C C', 'N/C E', 'Mov. Cli.'].includes(mov.nombre_comprobante)) {
       return saldo + mov.importe_total;
-    } else if (['RB A', 'RB B', 'NC A', 'NC B', 'NC C', 'NC E'].includes(mov.nombre_comprobante)) {
+    } else if (['RB A', 'RB B', 'Mov. Cli.'].includes(mov.nombre_comprobante)) {
       return saldo - mov.importe_total;
     }
     return saldo;
