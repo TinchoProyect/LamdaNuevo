@@ -13,4 +13,5 @@ export type Movimiento = {
     estado: number;
     efectivo: string | null;
     índice: number; // Nuevo campo agregado para numerar los movimientos
+    saldo_parcial: number; // Nuevo campo para el saldo parcial acumulativo
 };

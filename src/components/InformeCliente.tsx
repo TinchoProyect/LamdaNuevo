@@ -20,11 +20,14 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
 
   const isLoading = isLoadingMovDetalles || isLoadingMov || isLoadingSaldo;
 
-  // Formateador para números en formato regional argentino
-  const formatter = new Intl.NumberFormat('es-AR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  // Formateador para números en formato regional argentino con ajuste para ceros cercanos
+  const formatter = (value: number) => {
+    if (Math.abs(value) < 0.99) return '0.00';
+    return new Intl.NumberFormat('es-AR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  };
 
   // Obtener la fecha actual
   const fechaActual = new Date().toLocaleDateString('es-AR');
@@ -35,16 +38,32 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
   };
 
   // Obtener el saldo inicial del contexto o establecerlo en 0 si no está disponible
-  const saldoInicial = saldo ? saldo.Monto : 0;
+  let saldoInicial = saldo ? saldo.Monto : 0;
 
-  // Ordenar movimientos por fecha (más recientes primero)
-  const sortedMovimientos = [...movimientos].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+  // Ordenar movimientos por fecha (los más antiguos primero para cálculos correctos)
+  const sortedMovimientos = [...movimientos].sort(
+    (a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
+  );
 
-  // Asignar un índice a cada movimiento en el orden correcto (invertido)
-  const movimientosConIndice = sortedMovimientos.map((mov, index, array) => ({
-    ...mov,
-    indice: array.length - index + 1,
-  }));
+  // Calcular saldos parciales respetando el orden cronológico
+  let saldoAcumulado = saldoInicial;
+  const movimientosConSaldoParcial = sortedMovimientos.map((mov, index) => {
+    if (['FA', 'FB', 'FC', 'FE', 'FD', 'N/C A', 'N/C B', 'N/C C', 'N/C E', 'Mov. Cli.'].includes(mov.nombre_comprobante)) {
+      saldoAcumulado += mov.importe_total;
+    } else if (['RB A', 'RB B'].includes(mov.nombre_comprobante)) {
+      saldoAcumulado -= mov.importe_total;
+    }
+    return {
+      ...mov,
+      saldo_parcial: saldoAcumulado,
+      indice: index + 2, // El índice comienza en 2, ya que 1 es el saldo inicial
+    };
+  });
+
+  // Calcular el saldo final directamente desde los saldos parciales
+  const saldoFinal = movimientosConSaldoParcial.length > 0
+    ? movimientosConSaldoParcial[movimientosConSaldoParcial.length - 1].saldo_parcial
+    : saldoInicial;
 
   // Agrupar detalles por movimiento
   const detallesPorMovimiento = movDetalles.reduce((acc, detalle) => {
@@ -54,35 +73,30 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     return acc;
   }, {} as Record<number, Mov_Detalle[]>);
 
-  // Función para agrupar movimientos por mes y año
-  const agruparPorMes = () => {
-    return movimientosConIndice.reduce((acc, mov) => {
-      const [year, month] = mov.fecha.split('-');
-      const mesYAnio = `${year}-${month}`;
-      if (!acc[mesYAnio]) acc[mesYAnio] = [];
-      acc[mesYAnio].push(mov);
-      return acc;
-    }, {} as Record<string, typeof movimientosConIndice>);
-  };
-
-  const movimientosPorMes = agruparPorMes();
-  const saldoFinal = calcularSaldo(movimientosConIndice, saldoInicial);
+  // Agrupar movimientos por mes y año para visualización (en orden inverso para mostrar los más recientes arriba)
+  const movimientosPorMes = movimientosConSaldoParcial.reduce((acc, mov) => {
+    const [year, month] = mov.fecha.split('-');
+    const mesYAnio = `${year}-${month}`;
+    if (!acc[mesYAnio]) acc[mesYAnio] = [];
+    acc[mesYAnio].push(mov);
+    return acc;
+  }, {} as Record<string, typeof movimientosConSaldoParcial>);
 
   return (
     <div className="container m-0 p-0">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="mb-0">
-          Movimientos de {cliente?.Nombre} {cliente?.Apellido} 
+          Movimientos de {cliente?.Nombre} {cliente?.Apellido}
           <span className="text-muted ms-2">({cliente?.Número.toString().padStart(3, '0')})</span>
         </h2>
         <div>
           <h4 className="mb-0">
-            Saldo: <span className="text-success">${formatter.format(saldoFinal)}</span>
+            Saldo: <span className="text-success">${formatter(saldoFinal)}</span>
           </h4>
           <small className="text-muted">({fechaActual})</small>
         </div>
       </div>
-      
+
       <button className="btn btn-secondary mb-4 no-print" onClick={onBack}>
         Volver
       </button>
@@ -95,19 +109,19 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
         </div>
       ) : (
         <>
-          {Object.entries(movimientosPorMes).map(([mesYAnio, movimientos]) => (
+          {Object.entries(movimientosPorMes).reverse().map(([mesYAnio, movimientos]) => (
             <div key={mesYAnio} className="mb-4">
               <h4 className="text-secondary mb-3">
                 {capitalizeFirstLetter(new Date(movimientos[0].fecha).toLocaleDateString('es-AR', { year: 'numeric', month: 'long' }))}
               </h4>
 
-              {movimientos.map((mov) => (
+              {movimientos.reverse().map((mov) => (
                 <div key={mov.codigo} className="mb-4">
                   <div className="border p-3 rounded bg-light">
                     <div className="justify-content-between d-flex">
                       <h5>
                         {comprobanteMap[mov.nombre_comprobante] || mov.nombre_comprobante}{' '}
-                        <span className="text-success">${formatter.format(mov.importe_total)}</span>
+                        <span className="text-success">${formatter(mov.importe_total)}</span>
                       </h5>
                       <p>
                         <strong>Número:</strong>{' '}
@@ -119,8 +133,11 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                       <p>
                         <strong>Índice:</strong> {mov.indice}
                       </p>
+                      <p>
+                        <strong>Saldo Parcial:</strong> ${formatter(mov.saldo_parcial)}
+                      </p>
                     </div>
-                    {['FA', 'FB', 'FC','FE' ,'FD'].includes(mov.nombre_comprobante) && (
+                    {['FA', 'FB', 'FC', 'FE', 'FD'].includes(mov.nombre_comprobante) && (
                       <div>
                         <table className="table table-bordered mt-3">
                           <thead>
@@ -147,22 +164,21 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
               ))}
             </div>
           ))}
-          {/* Renderizar saldo inicial al final del formulario */}
           <div className="mb-4">
             <div className="border p-3 rounded bg-light">
               <h5>
                 <strong>Saldo Inicial:</strong>{' '}
-                <span className="text-success">${formatter.format(saldoInicial)}</span>
+                <span className="text-success">${formatter(saldo?.Monto || 0)}</span>
               </h5>
               <p>
                 <strong>Índice:</strong> 1
               </p>
-              {saldo?.Fecha ? ( // Mostrar la fecha correcta del saldo inicial con ajuste manual para zona horaria
+              {saldo?.Fecha ? (
                 <p>
                   <strong>Fecha:</strong>{' '}
                   {(() => {
-                    const fecha = new Date(saldo.Fecha); // Convertir a objeto Date
-                    fecha.setHours(fecha.getHours() + 3); // Ajustar manualmente a UTC-3
+                    const fecha = new Date(saldo.Fecha);
+                    fecha.setHours(fecha.getHours() + 3);
                     return fecha.toLocaleDateString('es-AR');
                   })()}
                 </p>
@@ -177,9 +193,9 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
 
 const calcularSaldo = (movimientos: Movimiento[], saldoInicial: number) => {
   return movimientos.reduce((saldo, mov) => {
-    if (['FA', 'FB','FE','FC', 'FD', 'N/C A', 'N/C B', 'N/C C', 'N/C E', 'Mov. Cli.'].includes(mov.nombre_comprobante)) {
+    if (['FA', 'FB', 'FC', 'FE', 'FD', 'N/C A', 'N/C B', 'N/C C', 'N/C E', 'Mov. Cli.'].includes(mov.nombre_comprobante)) {
       return saldo + mov.importe_total;
-    } else if (['RB A', 'RB B', 'Mov. Cli.'].includes(mov.nombre_comprobante)) {
+    } else if (['RB A', 'RB B'].includes(mov.nombre_comprobante)) {
       return saldo - mov.importe_total;
     }
     return saldo;
