@@ -6,7 +6,7 @@ import { comprobanteMap } from '../utils/comprobanteMap';
 import { formatNumeroFactura } from '../utils/numeroFacturaMap';
 import { Cliente } from '../types/cliente';
 import './InformeCliente.css';
-import { Movimiento } from '../types/movimiento';
+/*import { Movimiento } from '../types/movimiento';*/
 
 type InformeClienteProps = {
   onBack: () => void;
@@ -191,7 +191,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
   );
 };
 
-const calcularSaldo = (movimientos: Movimiento[], saldoInicial: number) => {
+/*const calcularSaldo = (movimientos: Movimiento[], saldoInicial: number) => {
   return movimientos.reduce((saldo, mov) => {
     if (['FA', 'FB', 'FC', 'FE', 'FD', 'N/C A', 'N/C B', 'N/C C', 'N/C E', 'Mov. Cli.'].includes(mov.nombre_comprobante)) {
       return saldo + mov.importe_total;
@@ -200,6 +200,6 @@ const calcularSaldo = (movimientos: Movimiento[], saldoInicial: number) => {
     }
     return saldo;
   }, saldoInicial);
-};
+};*/
 
 export default InformeCliente;
