@@ -183,11 +183,11 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                   )}
                 </h4>
 
-                {movimientos.reverse().map((mov) => {
+                {movimientos.reverse().map((mov, movIndex) => {
                   const estiloInline = aplicarEstilosDinamicos(mov);
 
                   return (
-                    <div key={mov.codigo} className="mb-4" style={estiloInline}>
+                    <div key={`${mov.codigo}-${movIndex}`} className="mb-4" style={estiloInline}>
                       <div className="border p-3 rounded">
                         <div className="justify-content-between d-flex">
                           <h5>
@@ -250,8 +250,8 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                                 </tr>
                               </thead>
                               <tbody>
-                                {detallesPorMovimiento[mov.codigo]?.map((detalle) => (
-                                  <tr key={detalle.Numero_Movimiento}>
+                                {detallesPorMovimiento[mov.codigo]?.map((detalle, detalleIndex) => (
+                                  <tr key={`${detalle.Numero_Movimiento}-${detalleIndex}`}>
                                     <td style={{ textAlign: 'left' }}>
                                       {detalle.Articulo_Detalle}
                                     </td>
