@@ -21,7 +21,14 @@ export const MovimientoProvider = ({ children }: { children?: ReactNode }) => {
       setIsLoadingMov(true);
       setError(null);
       const response = await api.get<Movimiento[]>(`/movimientos?clienteId=${id}`); // Usa tu instancia configurada
-      setMovimientos(response.data);
+
+      // Normalizamos los datos para garantizar que todos los movimientos tengan la propiedad `efectivo`
+      const movimientosNormalizados = response.data.map((mov) => ({
+        ...mov,
+        efectivo: mov.efectivo ?? null, // Si `efectivo` está ausente, se asigna `null`
+      }));
+
+      setMovimientos(movimientosNormalizados);
     } catch (error) {
       setError('Error al obtener los movimientos');
       console.error('Error al obtener los movimientos:', error);
