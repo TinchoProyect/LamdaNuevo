@@ -37,7 +37,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
   const saldoInicial = saldo ? saldo.Monto : 0;
 
   const sortedMovimientos = [...movimientos].sort(
-    (a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
+    (a, b) => new Date(a.fecha || '').getTime() - new Date(b.fecha || '').getTime()
   );
 
   let saldoAcumulado = saldoInicial;
@@ -81,7 +81,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
       nombre_comprobante: 'Saldo Inicial',
       importe_total: saldoInicial,
       saldo_parcial: saldoInicial,
-      fecha: '',
+      fecha: null, // Cambiado de '' a null
       numero: 0, // Asegurarse de que 'numero' sea un número
       índice: 1,
       efectivo: null,
@@ -109,12 +109,17 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
   }, {} as Record<number, Mov_Detalle[]>);
 
   const movimientosPorMes = movimientosConSaldoInicial.reduce((acc, mov) => {
-    const [year, month] = mov.fecha.split('-');
-    const mesYAnio = `${year}-${month}`;
-    if (!acc[mesYAnio]) acc[mesYAnio] = [];
-    acc[mesYAnio].push(mov);
+    if (mov.fecha) {
+      const fecha = new Date(mov.fecha);
+      const fechaUTC = new Date(fecha.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+      const year = fechaUTC.getFullYear();
+      const month = (fechaUTC.getMonth() + 1).toString().padStart(2, '0');
+      const mesYAnio = `${year}-${month}`;
+      if (!acc[mesYAnio]) acc[mesYAnio] = [];
+      acc[mesYAnio].push(mov);
+    }
     return acc;
-  }, {} as Record<string, typeof movimientosConSaldoInicial>);
+  }, {} as Record<string, Movimiento[]>);
 
   const esNotaDeCredito = (nombreComprobante: string): boolean => {
     const comprobanteLimpio = nombreComprobante.trim().toUpperCase();
@@ -175,12 +180,15 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
             .map(([mesYAnio, movimientos]) => (
               <div key={mesYAnio} className="mb-4">
                 <h4 className="text-secondary mb-3">
-                  {capitalizeFirstLetter(
-                    new Date(movimientos[0].fecha).toLocaleDateString('es-AR', {
-                      year: 'numeric',
-                      month: 'long',
-                    })
-                  )}
+                  {movimientos[0].fecha 
+                    ? capitalizeFirstLetter(
+                        new Date(movimientos[0].fecha).toLocaleString('es-AR', {
+                          timeZone: 'America/Argentina/Buenos_Aires',
+                          year: 'numeric',
+                          month: 'long',
+                        })
+                      )
+                    : '-'}
                 </h4>
 
                 {movimientos.reverse().map((mov, movIndex) => {
@@ -273,6 +281,27 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                 })}
               </div>
             ))}
+          {/* Saldo inicial colocado en la base del informe */}
+          <div className="mb-4">
+            <h4 className="text-secondary mb-3">Saldo Inicial</h4>
+            <div className="border p-3 rounded">
+              <div className="justify-content-between d-flex">
+                <h5>
+                  Saldo Inicial{' '}
+                  <span className="text-success">${formatter(saldoInicial)}</span>
+                </h5>
+                <p>
+                  <strong>Fecha:</strong> -
+                </p>
+                <p>
+                  <strong>Índice:</strong> 1
+                </p>
+                <p>
+                  <strong>Saldo Parcial:</strong> ${formatter(saldoInicial)}
+                </p>
+              </div>
+            </div>
+          </div>
         </>
       )}
     </div>

@@ -1,7 +1,7 @@
 export type Saldo = {
     IDCliente: number;
     Monto: number;
-    Fecha: string;
+    fecha: string;
     Usuario: string;
     UltimaModificacion: string;
 };
