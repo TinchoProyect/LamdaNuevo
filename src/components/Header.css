@@ -30,7 +30,7 @@
 
 .logo {
     height: 140px; /* Ajusta según sea necesario */
-    max-width: 1000px; /* Ajusta según sea necesario */
+    max-width: 700px; /* Ajusta según sea necesario */
     width: auto; /* Permite que la imagen mantenga su proporción */
     object-fit: contain; /* Asegura que la imagen se ajuste sin distorsionarse */
 }
