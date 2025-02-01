@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { useMovimientoDetalles } from '../context/MovimientoDetalleContext';
 import { useMovimientos } from '../context/MovimientoContext';
 import { useSaldos } from '../context/SaldoContext';
@@ -20,6 +21,83 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
 
   const isLoading = isLoadingMovDetalles || isLoadingMov || isLoadingSaldo;
 
+  // -----------------------------------------------------------------
+  // ESTADOS Y LÓGICA PARA "GENERAR INFORME PDF"
+  // -----------------------------------------------------------------
+
+  // Opciones de filtro
+  const [saldoCero, setSaldoCero] = useState<boolean>(false);
+  const [desdeHasta, setDesdeHasta] = useState<boolean>(false);
+
+  // Valor por defecto para "Hasta" => hoy + 3 días
+  const [fechaDesde, setFechaDesde] = useState<string>('');
+  const [fechaHasta, setFechaHasta] = useState<string>(
+    new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  );
+
+  // Este botón está habilitado por defecto, ya que aquí siempre hay un cliente seleccionado
+  const generarPDFEnabled = true;
+
+  // Nuevo estado: mostrar/ocultar el menú desplegable
+  const [showPDFOptions, setShowPDFOptions] = useState<boolean>(false);
+  const togglePDFOptions = () => {
+    setShowPDFOptions(!showPDFOptions);
+  };
+
+  // Manejar checkboxes
+  const handleCheckboxChange = (checkbox: string) => {
+    if (checkbox === 'saldoCero') {
+      setSaldoCero(!saldoCero);
+      setDesdeHasta(false);
+    } else if (checkbox === 'desdeHasta') {
+      setDesdeHasta(!desdeHasta);
+      setSaldoCero(false);
+    }
+  };
+
+  // Validaciones de fechas
+  const handleFechaDesdeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const nuevaFechaDesde = e.target.value;
+    const dateDesde = new Date(nuevaFechaDesde);
+    const dateHasta = new Date(fechaHasta);
+
+    // Evitar que "Desde" sea posterior a "Hasta"
+    if (dateDesde > dateHasta) {
+      alert("La fecha 'Desde' debe ser igual o anterior a 'Hasta'.");
+      return;
+    }
+    setFechaDesde(nuevaFechaDesde);
+  };
+
+  const handleFechaHastaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const nuevaFechaHasta = e.target.value;
+    const dateHasta = new Date(nuevaFechaHasta);
+    const dateDesde = new Date(fechaDesde);
+
+    // Evitar que "Hasta" sea anterior a "Desde"
+    if (fechaDesde && dateHasta < dateDesde) {
+      alert("La fecha 'Hasta' debe ser igual o posterior a 'Desde'.");
+      return;
+    }
+    setFechaHasta(nuevaFechaHasta);
+  };
+
+  // Evento para generar el PDF
+  const handleGenerarPDF = () => {
+    console.log('Generando PDF desde InformeCliente.tsx...');
+    console.log(`Filtro "Desde Saldo Cero": ${saldoCero}`);
+    console.log(`Filtro "Desde y Hasta": ${desdeHasta}`);
+    console.log(`Fecha Desde: ${fechaDesde}`);
+    console.log(`Fecha Hasta: ${fechaHasta}`);
+
+    // Aquí realizar la llamada real a la función o servicio que genere el PDF
+    // p.ej. generarInformePDF({ saldoCero, desdeHasta, fechaDesde, fechaHasta, cliente });
+  };
+
+  // -----------------------------------------------------------------
+  // LÓGICA EXISTENTE PARA MOSTRAR MOVIMIENTOS, SALDO, ETC.
+  // -----------------------------------------------------------------
+
   // Formateador de números
   const formatter = (value: number) => {
     if (Math.abs(value) < 0.99) return '0.00';
@@ -35,7 +113,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     return string.charAt(0).toUpperCase() + string.slice(1);
   };
 
-  // Función auxiliar para obtener el nombre del color según la cantidad de días transcurridos (para mostrar en el encabezado de cada factura)
+  // Función auxiliar para obtener el nombre del color según la cantidad de días transcurridos
   const getColorNameByDays = (dias: number) => {
     if (dias <= 7) return 'Verde';
     else if (dias >= 8 && dias <= 14) return 'Amarillo';
@@ -82,21 +160,21 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
       fecha_vto: mov.fecha_vto,
       fecha_comprobante: mov.fecha_comprobante,
       comentario: mov.comentario,
-      estado: Number(mov.estado), // Asegurarse de que 'estado' sea un número
-      codigo: Number(mov.codigo), // Asegurarse de que 'codigo' sea un número
-      numero: Number(mov.numero), // Asegurarse de que 'numero' sea un número
+      estado: Number(mov.estado),
+      codigo: Number(mov.codigo),
+      numero: Number(mov.numero),
     } as Movimiento;
   });
 
   // Agregar el movimiento de Saldo Inicial con índice 1
   const movimientosConSaldoInicial = [
     {
-      codigo: 0, // Asegurarse de que 'codigo' sea un número
+      codigo: 0,
       nombre_comprobante: 'Saldo Inicial',
       importe_total: saldoInicial,
       saldo_parcial: saldoInicial,
-      fecha: null, // Cambiado de '' a null
-      numero: 0, // Asegurarse de que 'numero' sea un número
+      fecha: null,
+      numero: 0,
       índice: 1,
       efectivo: null,
       cod_cli_prov: 0,
@@ -105,7 +183,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
       fecha_vto: '',
       fecha_comprobante: '',
       comentario: '',
-      estado: 0, // Asegurarse de que 'estado' sea un número
+      estado: 0,
     } as Movimiento,
     ...movimientosConSaldoParcial,
   ];
@@ -115,6 +193,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
       ? movimientosConSaldoInicial[movimientosConSaldoInicial.length - 1].saldo_parcial
       : saldoInicial;
 
+  // Agrupar detalles por movimiento
   const detallesPorMovimiento = movDetalles.reduce((acc, detalle) => {
     const { Codigo_Movimiento } = detalle;
     if (!acc[Codigo_Movimiento]) acc[Codigo_Movimiento] = [];
@@ -122,6 +201,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     return acc;
   }, {} as Record<number, Mov_Detalle[]>);
 
+  // Agrupar movimientos por mes (para encabezados de mes)
   const movimientosPorMes = movimientosConSaldoInicial.reduce((acc, mov) => {
     if (mov.fecha) {
       const fecha = new Date(mov.fecha);
@@ -137,7 +217,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     return acc;
   }, {} as Record<string, Movimiento[]>);
 
-  // Función para identificar si un comprobante es Nota de Crédito
+  // Función para detectar Nota de Crédito
   const esNotaDeCredito = (nombreComprobante: string): boolean => {
     const comprobanteLimpio = nombreComprobante.trim().toUpperCase();
     return (
@@ -147,9 +227,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     );
   };
 
-  // Cálculo de facturas involucradas en el saldo pendiente (solo para clientes con saldo positivo)
-  // Se seleccionan las facturas más recientes (según el valor del índice) hasta completar el saldo pendiente.
-  // Si una factura supera el saldo restante, solo se toma la parte necesaria.
+  // Cálculo de facturas involucradas en el saldo pendiente
   const facturasInvolucradasMap: Record<
     number,
     { montoInvolucrado: number; porcentaje: number; diasTranscurridos: number; color: string }
@@ -157,11 +235,11 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
 
   if (saldoFinal > 0) {
     let saldoPendiente = saldoFinal;
-    // Filtrar movimientos que sean facturas (excluyendo el movimiento "Saldo Inicial")
+    // Filtrar movimientos que sean facturas (excluyendo "Saldo Inicial")
     const facturas = movimientosConSaldoInicial.filter((mov) =>
       ['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante)
     );
-    // Ordenar de más recientes a más antiguas utilizando el valor del índice (mayor índice = más reciente)
+    // Ordenar de más recientes a más antiguas
     const facturasDesc = facturas.sort((a, b) => b.índice - a.índice);
     for (const factura of facturasDesc) {
       if (saldoPendiente <= 0) break;
@@ -172,9 +250,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
       if (factura.fecha) {
         const fechaFactura = new Date(factura.fecha);
         const hoy = new Date();
-        diasTranscurridos = Math.floor(
-          (hoy.getTime() - fechaFactura.getTime()) / (1000 * 60 * 60 * 24)
-        );
+        diasTranscurridos = Math.floor((hoy.getTime() - fechaFactura.getTime()) / (1000 * 60 * 60 * 24));
       }
       // Asignar color según la antigüedad de la factura
       let color = '#f0f0f0';
@@ -213,7 +289,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     {} as Record<string, { totalMonto: number; totalPercentage: number }>
   );
 
-  // Orden de colores: de más recientes a menos recientes (Verde, Amarillo, Naranja, Rojo, Bordeaux)
+  // Orden de colores
   const orderColors = ['#d4edda', '#fff3cd', '#ffe5b4', '#f8d7da', '#800020'];
 
   // Mapeo para la columna "Estado"
@@ -231,32 +307,115 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
       return { backgroundColor: '#A9A9A9cc' }; // Estilo para notas de crédito
     }
     if (mov.nombre_comprobante.startsWith('R')) {
-      return { backgroundColor: '#c8e6c9' }; // Estilo para recibos (verde claro)
+      return { backgroundColor: '#c8e6c9' }; // Estilo para recibos
     }
     if (['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante)) {
-      // Si el cliente tiene saldo positivo y la factura está involucrada, se asigna el color según los días
       if (saldoFinal > 0 && facturasInvolucradasMap[mov.codigo]) {
         return { backgroundColor: facturasInvolucradasMap[mov.codigo].color };
       }
-      return { backgroundColor: '#f0f0f0' }; // Estilo por defecto para facturas
+      return { backgroundColor: '#f0f0f0' };
     }
     return {};
   };
 
   return (
     <div className="container m-0 p-0">
+      {/* Encabezado principal */}
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="mb-0">
-          Movimientos de {cliente?.Nombre} {cliente?.Apellido}
-          <span className="text-muted ms-2">
-            ({cliente?.Número.toString().padStart(3, '0')})
-          </span>
-        </h2>
         <div>
-          <h4 className="mb-0">
-            Saldo: <span className="text-success">${formatter(saldoFinal)}</span>
-          </h4>
-          <small className="text-muted">({fechaActual})</small>
+          <h2 className="mb-0">
+            Movimientos de {cliente?.Nombre} {cliente?.Apellido}
+            <span className="text-muted ms-2">
+              ({cliente?.Número.toString().padStart(3, '0')})
+            </span>
+          </h2>
+          <div>
+            <h4 className="mb-0">
+              Saldo: <span className="text-success">${formatter(saldoFinal)}</span>
+            </h4>
+            <small className="text-muted">({fechaActual})</small>
+          </div>
+        </div>
+
+        {/* BOTÓN que despliega el menú de PDF */}
+        <div style={{ position: 'relative' }} className="no-print">
+          <button className="btn btn-primary" onClick={togglePDFOptions}>
+            Generar Informe PDF
+          </button>
+
+          {/* Menú desplegable: solo se muestra si showPDFOptions = true */}
+          {showPDFOptions && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                width: '280px',
+                marginTop: '0.5rem',
+                padding: '1rem',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                backgroundColor: '#fff',
+                zIndex: 999, // Asegurar que quede sobre otros elementos
+              }}
+            >
+              <div className="form-check mb-1">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id="saldoCero"
+                  checked={saldoCero}
+                  onChange={() => handleCheckboxChange('saldoCero')}
+                />
+                <label className="form-check-label" htmlFor="saldoCero">
+                  Desde Saldo Cero
+                </label>
+              </div>
+              <div className="form-check mb-2">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id="desdeHasta"
+                  checked={desdeHasta}
+                  onChange={() => handleCheckboxChange('desdeHasta')}
+                />
+                <label className="form-check-label" htmlFor="desdeHasta">
+                  Desde y Hasta
+                </label>
+              </div>
+
+              {desdeHasta && (
+                <div style={{ marginTop: '0.5rem' }}>
+                  <label htmlFor="fechaDesde">Desde:</label>
+                  <input
+                    type="date"
+                    id="fechaDesde"
+                    value={fechaDesde}
+                    onChange={handleFechaDesdeChange}
+                    max={fechaHasta}
+                    className="form-control mb-2"
+                  />
+                  <label htmlFor="fechaHasta">Hasta:</label>
+                  <input
+                    type="date"
+                    id="fechaHasta"
+                    value={fechaHasta}
+                    onChange={handleFechaHastaChange}
+                    min={fechaDesde || undefined}
+                    className="form-control"
+                  />
+                </div>
+              )}
+
+              <button
+                className="btn btn-success w-100 mt-3"
+                onClick={handleGenerarPDF}
+                disabled={!generarPDFEnabled}
+              >
+                Generar PDF
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -264,7 +423,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
         Volver
       </button>
 
-      {/* Encabezado de Análisis de Saldo: se agrupan los totales por color en formato de tabla */}
+      {/* Encabezado de Análisis de Saldo */}
       {!isLoading && saldoFinal > 0 && Object.keys(analysisGroups).length > 0 && (
         <div
           className="analisis-saldo mb-4"
@@ -279,16 +438,24 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}>Color</th>
-                <th style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}>Monto</th>
-                <th style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}>Porcentaje</th>
-                <th style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}>Estado</th>
+                <th style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}>
+                  Color
+                </th>
+                <th style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}>
+                  Monto
+                </th>
+                <th style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}>
+                  Porcentaje
+                </th>
+                <th style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}>
+                  Estado
+                </th>
               </tr>
             </thead>
             <tbody>
               {orderColors
-                .filter(color => analysisGroups[color])
-                .map(color => {
+                .filter((color) => analysisGroups[color])
+                .map((color) => {
                   const group = analysisGroups[color];
                   return (
                     <tr key={color}>
@@ -320,10 +487,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
       )}
 
       {isLoading ? (
-        <div
-          className="d-flex justify-content-center align-items-center"
-          style={{ height: '200px' }}
-        >
+        <div className="d-flex justify-content-center align-items-center" style={{ height: '200px' }}>
           <div className="spinner-border text-primary" role="status">
             <span className="visually-hidden">Cargando...</span>
           </div>
@@ -357,8 +521,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                             {comprobanteMap[mov.nombre_comprobante] || mov.nombre_comprobante}{' '}
                             <span className="text-success">
                               ${formatter(mov.importe_total)}
-                              {mov.nombre_comprobante.startsWith('RB') &&
-                              typeof mov.efectivo === 'string'
+                              {mov.nombre_comprobante.startsWith('RB') && typeof mov.efectivo === 'string'
                                 ? ` (${mov.efectivo})`
                                 : ''}
                             </span>
@@ -372,9 +535,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                           </p>
                           <p>
                             <strong>Fecha:</strong>{' '}
-                            {mov.fecha
-                              ? new Date(mov.fecha).toLocaleDateString('es-AR')
-                              : '-'}
+                            {mov.fecha ? new Date(mov.fecha).toLocaleDateString('es-AR') : '-'}
                           </p>
                           <p>
                             <strong>Índice:</strong> {mov.índice}
@@ -383,7 +544,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                             <strong>Saldo Parcial:</strong> ${formatter(mov.saldo_parcial)}
                           </p>
                         </div>
-                        {/* Si la factura está involucrada en el saldo pendiente, se muestra la información adicional */}
+                        {/* Si la factura está involucrada en el saldo pendiente */}
                         {['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante) &&
                           facturasInvolucradasMap[mov.codigo] && (
                             <p className="mt-2">
@@ -409,11 +570,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                           <div>
                             <table
                               className="table table-bordered mt-3"
-                              style={{
-                                width: '45%',
-                                marginLeft: '0',
-                                marginRight: 'auto',
-                              }}
+                              style={{ width: '45%', marginLeft: '0', marginRight: 'auto' }}
                             >
                               <thead>
                                 <tr>
@@ -440,14 +597,14 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                 })}
               </div>
             ))}
-          {/* Saldo inicial colocado en la base del informe */}
+
+          {/* Saldo inicial al final */}
           <div className="mb-4">
             <h4 className="text-secondary mb-3">Saldo Inicial</h4>
             <div className="border p-3 rounded">
               <div className="justify-content-between d-flex">
                 <h5>
-                  Saldo Inicial{' '}
-                  <span className="text-success">${formatter(saldoInicial)}</span>
+                  Saldo Inicial <span className="text-success">${formatter(saldoInicial)}</span>
                 </h5>
                 <p>
                   <strong>Fecha:</strong> -
