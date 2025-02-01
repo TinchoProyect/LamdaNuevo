@@ -6,7 +6,7 @@ type MovimientoContextType = {
   movimientos: Movimiento[];
   setMovimientos: (movimientos: Movimiento[]) => void;
   isLoadingMov: boolean;
-  fetchMovimientos: (id: number) => Promise<void>;
+  fetchMovimientos: (id: number) => Promise<Movimiento[]>;
 };
 
 const MovimientoContext = createContext<MovimientoContextType | undefined>(undefined);
@@ -16,7 +16,7 @@ export const MovimientoProvider = ({ children }: { children?: ReactNode }) => {
   const [isLoadingMov, setIsLoadingMov] = useState<boolean>(false);
   const [, setError] = useState<string | null>(null);
 
-  const fetchMovimientos = async (id: number) => {
+  const fetchMovimientos = async (id: number): Promise<Movimiento[]> => {
     try {
       setIsLoadingMov(true);
       setError(null);
@@ -29,9 +29,11 @@ export const MovimientoProvider = ({ children }: { children?: ReactNode }) => {
       }));
 
       setMovimientos(movimientosNormalizados);
+      return movimientosNormalizados;
     } catch (error) {
       setError('Error al obtener los movimientos');
       console.error('Error al obtener los movimientos:', error);
+      return [];
     } finally {
       setIsLoadingMov(false);
     }

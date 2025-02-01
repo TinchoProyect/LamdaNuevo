@@ -5,6 +5,7 @@ import { useMovimientoDetalles } from '../context/MovimientoDetalleContext';
 import { useSaldos } from '../context/SaldoContext';
 import { formatNumeroCliente } from '../utils/numeroClienteMap';
 import { Cliente } from '../types/cliente';
+import calcularSaldoTotal from '../utils/calcularSaldoTotal';
 import InformeCliente from './InformeCliente';
 import './BusquedaCliente.css';
 
@@ -14,29 +15,54 @@ const BusquedaCliente = () => {
   const { clientes, isLoading } = useClientes();
   const { fetchMovDetalles } = useMovimientoDetalles();
   const { fetchMovimientos } = useMovimientos();
-  const { fetchSaldo, setSaldo } = useSaldos();
-  
+  const { fetchSaldo } = useSaldos();
+
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   const [showInforme, setShowInforme] = useState<boolean>(false);
 
   // Filtrar clientes basado en el término de búsqueda
-  const filteredClientes = searchTerm ? clientes.filter((cliente: Cliente) => {
-    const numero = formatNumeroCliente(cliente.Número);
-    const nombre = cliente.Nombre?.toLowerCase() || '';
-    const apellido = cliente.Apellido?.toLowerCase() || '';
-    const searchLower = searchTerm.toLowerCase();
-    
-    return numero.includes(searchTerm) || 
-           nombre.includes(searchLower) || 
-           apellido.includes(searchLower);
-  }) : [];
+  const filteredClientes = searchTerm
+    ? clientes.filter((cliente: Cliente) => {
+        const numero = formatNumeroCliente(cliente.Número);
+        const nombre = cliente.Nombre?.toLowerCase() || '';
+        const apellido = cliente.Apellido?.toLowerCase() || '';
+        const searchLower = searchTerm.toLowerCase();
+
+        return (
+          numero.includes(searchTerm) ||
+          nombre.includes(searchLower) ||
+          apellido.includes(searchLower)
+        );
+      })
+    : [];
 
   const limitedClientes = filteredClientes.slice(0, MAX_RESULTS);
 
-  const handleSelectCliente = (cliente: Cliente) => {
+  const handleSelectCliente = async (cliente: Cliente) => {
     setSelectedCliente(cliente);
     setSearchTerm(''); // Limpiar el campo de búsqueda al seleccionar
+
+    try {
+      // Resolver las promesas para obtener saldo inicial y movimientos
+      const saldoInicial = await fetchSaldo(cliente.Número); // Devuelve un número
+      const movimientos = await fetchMovimientos(cliente.Número); // Devuelve un arreglo de movimientos
+
+      // Calcular el saldo total usando la función reutilizable
+      const saldoTotal = calcularSaldoTotal(saldoInicial, movimientos);
+
+      // Actualizar el cliente seleccionado con el saldo calculado
+      setSelectedCliente((prev) =>
+        prev
+          ? {
+              ...prev,
+              saldo: saldoTotal, // Asignar saldo resuelto (número)
+            }
+          : prev
+      );
+    } catch (error) {
+      console.error('Error al calcular el saldo del cliente:', error);
+    }
   };
 
   const handleVerMovimientos = () => {
@@ -50,7 +76,6 @@ const BusquedaCliente = () => {
 
   const handleBack = () => {
     setShowInforme(false);
-    setSaldo(null);
   };
 
   return (
@@ -60,7 +85,7 @@ const BusquedaCliente = () => {
       ) : (
         <div className="search-container">
           <h2 className="text-center mb-4">Buscar Clientes</h2>
-          
+
           <div className="search-wrapper">
             <input
               type="text"
@@ -82,7 +107,8 @@ const BusquedaCliente = () => {
                         }`}
                         onClick={() => handleSelectCliente(cliente)}
                       >
-                        <strong>{formatNumeroCliente(cliente.Número)}</strong> - {cliente.Nombre} {cliente.Apellido}
+                        <strong>{formatNumeroCliente(cliente.Número)}</strong> - {cliente.Nombre}{' '}
+                        {cliente.Apellido}
                       </li>
                     ))}
                     {filteredClientes.length > MAX_RESULTS && (
@@ -102,8 +128,14 @@ const BusquedaCliente = () => {
             <div className="selected-client mt-3 mb-3">
               <h5>Cliente seleccionado:</h5>
               <p>
-                <strong>{formatNumeroCliente(selectedCliente.Número)}</strong> - {selectedCliente.Nombre} {selectedCliente.Apellido}
+                <strong>{formatNumeroCliente(selectedCliente.Número)}</strong> - {selectedCliente.Nombre}{' '}
+                {selectedCliente.Apellido}
               </p>
+              {selectedCliente.saldo !== null && selectedCliente.saldo !== undefined && (
+                <p>
+                  <strong>Saldo:</strong> ${selectedCliente.saldo.toFixed(2)}
+                </p>
+              )}
             </div>
           )}
 
