@@ -6,8 +6,13 @@ import { useSaldos } from '../context/SaldoContext';
 import { formatNumeroCliente } from '../utils/numeroClienteMap';
 import { Cliente } from '../types/cliente';
 import calcularSaldoTotal from '../utils/calcularSaldoTotal';
+import { Movimiento } from '../types/movimiento';
+import { Mov_Detalle } from '../types/movimiento_detalle';
 import InformeCliente from './InformeCliente';
 import './BusquedaCliente.css';
+
+// Importamos la función que genera el PDF:
+import { generarInformePDF } from '../utils/generarPDF';
 
 const MAX_RESULTS = 10;
 
@@ -20,14 +25,15 @@ const BusquedaCliente = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   const [showInforme, setShowInforme] = useState<boolean>(false);
-  
-  // Nuevos estados para el botón y checkboxes
+
+  // Guardar movimientos y detalles para poder filtrar y generar PDF
+  const [movimientosCliente, setMovimientosCliente] = useState<Movimiento[]>([]);
+  const [movDetallesCliente, setMovDetallesCliente] = useState<Mov_Detalle[]>([]);
+
+  // Estados de checkboxes y fechas (para PDF)
   const [generarPDFEnabled, setGenerarPDFEnabled] = useState<boolean>(false);
   const [saldoCero, setSaldoCero] = useState<boolean>(false);
   const [desdeHasta, setDesdeHasta] = useState<boolean>(false);
-
-  // Ajuste de la lógica de fechas
-  // Valor por defecto para "Hasta" => hoy + 3 días
   const [fechaDesde, setFechaDesde] = useState<string>('');
   const [fechaHasta, setFechaHasta] = useState<string>(
     new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -53,27 +59,34 @@ const BusquedaCliente = () => {
 
   const handleSelectCliente = async (cliente: Cliente) => {
     setSelectedCliente(cliente);
-    setSearchTerm(''); // Limpiar el campo de búsqueda al seleccionar
-    setGenerarPDFEnabled(true); // Habilitar el botón de generar PDF
-    setSaldoCero(false); // Resetear checkboxes
+    setSearchTerm('');
+    setGenerarPDFEnabled(true);
+    setSaldoCero(false);
     setDesdeHasta(false);
-    setFechaDesde(''); // Resetear fechas
+    setFechaDesde('');
     setFechaHasta(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
 
     try {
-      // Resolver las promesas para obtener saldo inicial y movimientos
+      // 1) Obtener saldo inicial y movimientos
       const saldoInicial = await fetchSaldo(cliente.Número); // Devuelve un número
       const movimientos = await fetchMovimientos(cliente.Número); // Devuelve un arreglo de movimientos
 
-      // Calcular el saldo total usando la función reutilizable
+      // Guardarlos en estado
+      setMovimientosCliente(movimientos);
+
+      // 2) Obtener detalles de movimientos
+      const detalles = ((await fetchMovDetalles(cliente.Número)) ?? []) as Mov_Detalle[]; // Garantizamos que sea un array
+      setMovDetallesCliente(detalles);
+
+      // 3) Calcular el saldo total usando la función
       const saldoTotal = calcularSaldoTotal(saldoInicial, movimientos);
 
-      // Actualizar el cliente seleccionado con el saldo calculado
+      // 4) Actualizar el cliente seleccionado con el saldo calculado
       setSelectedCliente((prev) =>
         prev
           ? {
               ...prev,
-              saldo: saldoTotal, // Asignar saldo resuelto (número)
+              saldo: saldoTotal,
             }
           : prev
       );
@@ -84,9 +97,7 @@ const BusquedaCliente = () => {
 
   const handleVerMovimientos = () => {
     if (selectedCliente) {
-      fetchMovDetalles(selectedCliente.Número);
-      fetchMovimientos(selectedCliente.Número);
-      fetchSaldo(selectedCliente.Número);
+      // Ya se han realizado fetchMovimientos / fetchMovDetalles en handleSelectCliente
       setShowInforme(true);
     }
   };
@@ -95,26 +106,106 @@ const BusquedaCliente = () => {
     setShowInforme(false);
   };
 
+  /**
+   * Lógica para generar PDF desde la pantalla 1
+   */
   const handleGenerarPDF = () => {
-    // Aquí se llamaría a la función para generar el PDF
-    console.log("Generando PDF con los filtros aplicados...");
+    if (!selectedCliente) {
+      console.error('No hay cliente seleccionado.');
+      return;
+    }
+
+    console.log('Generando PDF con los filtros aplicados...');
+    console.log(`Saldo Cero: ${saldoCero}, DesdeHasta: ${desdeHasta}`);
+
+    // 1) Ordenar movimientos por fecha (ascendente) para luego recalcular saldo parcial
+    const sortedMovs = [...movimientosCliente].sort(
+      (a, b) => new Date(a.fecha || '').getTime() - new Date(b.fecha || '').getTime()
+    );
+
+    // 2) Calcular saldo parcial igual que en InformeCliente (agregar índice)
+    let saldoAcumulado = selectedCliente.saldo ?? 0; // O el "saldoInicial" real
+    const movimientosConSaldoParcial = sortedMovs.map((mov, index) => {
+      if (
+        [
+          'FA',
+          'FB',
+          'FC',
+          'FE',
+          'FD',
+          'N/C A',
+          'N/C B',
+          'N/C C',
+          'N/C E',
+          'Mov. Cli.',
+        ].includes(mov.nombre_comprobante)
+      ) {
+        saldoAcumulado += mov.importe_total;
+      } else if (mov.nombre_comprobante.startsWith('RB')) {
+        saldoAcumulado -= mov.importe_total;
+      }
+      return {
+        ...mov,
+        saldo_parcial: saldoAcumulado,
+        índice: index + 2,
+      };
+    });
+
+    // 3) Filtrar según saldoCero o desdeHasta
+    let movimientosFiltrados: Movimiento[] = [];
+
+    if (saldoCero) {
+      const indexCero = movimientosConSaldoParcial.findIndex(
+        (m) => Math.abs(m.saldo_parcial) < 1
+      );
+      if (indexCero !== -1) {
+        movimientosFiltrados = movimientosConSaldoParcial.slice(indexCero);
+      } else {
+        movimientosFiltrados = movimientosConSaldoParcial;
+      }
+    } else if (desdeHasta) {
+      const dDesde = fechaDesde ? new Date(fechaDesde) : null;
+      const dHasta = new Date(fechaHasta);
+      movimientosFiltrados = movimientosConSaldoParcial.filter((mov) => {
+        if (!mov.fecha) return false;
+        const fMov = new Date(mov.fecha);
+        return (!dDesde || fMov >= dDesde) && fMov <= dHasta;
+      });
+    } else {
+      movimientosFiltrados = movimientosConSaldoParcial;
+    }
+
+    const detallesPorMovimiento = movDetallesCliente.reduce((acc, detalle) => {
+      const { Codigo_Movimiento } = detalle;
+      if (!acc[Codigo_Movimiento]) acc[Codigo_Movimiento] = [];
+      acc[Codigo_Movimiento].push(detalle);
+      return acc;
+    }, {} as Record<number, Mov_Detalle[]>);
+
+    const saldoFinal =
+      movimientosConSaldoParcial.length > 0
+        ? movimientosConSaldoParcial[movimientosConSaldoParcial.length - 1].saldo_parcial
+        : selectedCliente.saldo ?? 0;
+
+    generarInformePDF({
+      cliente: selectedCliente,
+      saldoFinal,
+      filtroSaldoCero: saldoCero,
+      filtroDesdeHasta: desdeHasta,
+      fechaDesde,
+      fechaHasta,
+      movimientosFiltrados,
+      detallesPorMovimiento,
+    });
   };
 
   const handleCheckboxChange = (checkbox: string) => {
     if (checkbox === 'saldoCero') {
-      if (saldoCero) {
-        setSaldoCero(false);
-      } else {
-        setSaldoCero(true);
-        setDesdeHasta(false);
-      }
-    } else {
-      if (desdeHasta) {
-        setDesdeHasta(false);
-      } else {
-        setDesdeHasta(true);
-        setSaldoCero(false);
-      }
+      setSaldoCero(!saldoCero);
+      setDesdeHasta(false);
+    } else if (checkbox === 'desdeHasta') {
+      setDesdeHasta(!desdeHasta);
+      setSaldoCero(false);
     }
   };
 
@@ -134,7 +225,6 @@ const BusquedaCliente = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-
             {searchTerm && !isLoading && (
               <div className="clientes-list-container">
                 {limitedClientes.length > 0 ? (
@@ -147,8 +237,8 @@ const BusquedaCliente = () => {
                         }`}
                         onClick={() => handleSelectCliente(cliente)}
                       >
-                        <strong>{formatNumeroCliente(cliente.Número)}</strong> - {cliente.Nombre}{' '}
-                        {cliente.Apellido}
+                        <strong>{formatNumeroCliente(cliente.Número)}</strong> -{' '}
+                        {cliente.Nombre} {cliente.Apellido}
                       </li>
                     ))}
                     {filteredClientes.length > MAX_RESULTS && (
@@ -168,8 +258,8 @@ const BusquedaCliente = () => {
             <div className="selected-client mt-3 mb-3">
               <h5>Cliente seleccionado:</h5>
               <p>
-                <strong>{formatNumeroCliente(selectedCliente.Número)}</strong> - {selectedCliente.Nombre}{' '}
-                {selectedCliente.Apellido}
+                <strong>{formatNumeroCliente(selectedCliente.Número)}</strong> -{' '}
+                {selectedCliente.Nombre} {selectedCliente.Apellido}
               </p>
               {selectedCliente.saldo !== null && selectedCliente.saldo !== undefined && (
                 <p>
@@ -187,6 +277,7 @@ const BusquedaCliente = () => {
             Ver Movimientos
           </button>
 
+          {/* Sección de opciones para PDF */}
           <div className="mt-3">
             <h5>Generar Informe PDF</h5>
             <div className="form-check">
@@ -198,7 +289,9 @@ const BusquedaCliente = () => {
                 onChange={() => handleCheckboxChange('saldoCero')}
                 disabled={!selectedCliente}
               />
-              <label className="form-check-label" htmlFor="saldoCero">Desde Saldo Cero</label>
+              <label className="form-check-label" htmlFor="saldoCero">
+                Desde Saldo Cero
+              </label>
             </div>
             <div className="form-check">
               <input
@@ -209,7 +302,9 @@ const BusquedaCliente = () => {
                 onChange={() => handleCheckboxChange('desdeHasta')}
                 disabled={!selectedCliente}
               />
-              <label className="form-check-label" htmlFor="desdeHasta">Desde y Hasta</label>
+              <label className="form-check-label" htmlFor="desdeHasta">
+                Desde y Hasta
+              </label>
             </div>
 
             {desdeHasta && (
@@ -230,7 +325,6 @@ const BusquedaCliente = () => {
                       }
                       setFechaDesde(e.target.value);
                     }}
-                    // El máximo para "Desde" es la fecha en "Hasta", para evitar que "Desde" sea posterior
                     max={fechaHasta}
                     placeholder="Selecciona una fecha inicial"
                     className="form-control"
@@ -247,14 +341,12 @@ const BusquedaCliente = () => {
                       const selectedDate = new Date(e.target.value);
                       const desdeDate = new Date(fechaDesde);
 
-                      // Si "Desde" no está vacío, validamos que "Hasta" sea >= "Desde"
                       if (fechaDesde && selectedDate < desdeDate) {
                         alert("La fecha 'Hasta' debe ser igual o posterior a 'Desde'.");
                         return;
                       }
                       setFechaHasta(e.target.value);
                     }}
-                    // El mínimo para "Hasta" es la fecha en "Desde"
                     min={fechaDesde || undefined}
                     placeholder="Selecciona una fecha final (predeterminado: día actual + 3 días)"
                     className="form-control"

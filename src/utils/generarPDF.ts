@@ -1,108 +1,129 @@
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { Cliente } from '../types/cliente';
 import { Movimiento } from '../types/movimiento';
+import { Mov_Detalle } from '../types/movimiento_detalle';
 
-interface Filtros {
-  desdeSaldoCero: boolean;
-  fechaDesde?: Date;
-  fechaHasta?: Date;
-}
-
-interface GenerarPDFParams {
+/**
+ * Parámetros para generar el PDF
+ */
+interface GenerarInformePDFParams {
   cliente: Cliente;
-  saldo: number;
-  movimientos: Movimiento[];
-  filtros: Filtros;
+  saldoFinal: number;
+  filtroSaldoCero: boolean;
+  filtroDesdeHasta: boolean;
+  fechaDesde?: string;
+  fechaHasta?: string;
+  movimientosFiltrados: Movimiento[];
+  detallesPorMovimiento?: Record<number, Mov_Detalle[]>; 
+  // ^ Opcional: si quieres incluir los detalles de factura/NC en el PDF
 }
 
-const generarPDF = async ({ cliente, saldo, movimientos, filtros }: GenerarPDFParams) => {
-  try {
-    // Aplicar filtros a los movimientos
-    let movimientosFiltrados = [...movimientos];
+/**
+ * Genera un PDF profesional (texto real, no captura de pantalla)
+ * con la lista de movimientos + sus detalles (opcional).
+ */
+export function generarInformePDF(params: GenerarInformePDFParams) {
+  const {
+    cliente,
+    saldoFinal,
+    filtroSaldoCero,
+    filtroDesdeHasta,
+    fechaDesde,
+    fechaHasta,
+    movimientosFiltrados,
+    detallesPorMovimiento = {},
+  } = params;
 
-    if (filtros.desdeSaldoCero) {
-      // Buscar el último movimiento cuyo saldo parcial esté en el rango [-0.99, 0.99]
-      const reversed = [...movimientosFiltrados].reverse();
-      const indexEnReversed = reversed.findIndex(mov => Math.abs(mov.saldo_parcial) < 0.99);
-      if (indexEnReversed !== -1) {
-        const startIndex = movimientosFiltrados.length - indexEnReversed - 1;
-        movimientosFiltrados = movimientosFiltrados.slice(startIndex);
-      }
-    } else if (filtros.fechaDesde && filtros.fechaHasta) {
-      if (filtros.fechaHasta < filtros.fechaDesde) {
-        throw new Error("La fecha 'Hasta' no puede ser anterior a 'Desde'.");
-      }
-      movimientosFiltrados = movimientosFiltrados.filter(mov => {
-        if (!mov.fecha) return false;
-        const movDate = new Date(mov.fecha);
-        return movDate >= filtros.fechaDesde! && movDate <= filtros.fechaHasta!;
-      });
+  // 1) Crear instancia jsPDF (A4 vertical, en milímetros)
+  const pdf = new jsPDF({
+    orientation: 'p',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  // Fecha actual
+  const fechaActual = new Date().toLocaleDateString('es-AR');
+
+  // 2) ENCABEZADO / DATOS DEL CLIENTE
+  pdf.setFontSize(14);
+  pdf.text('Informe de Movimientos', 10, 15);
+
+  pdf.setFontSize(11);
+  pdf.text(`Fecha de generación: ${fechaActual}`, 10, 23);
+
+  pdf.text(`Cliente: ${cliente.Nombre} ${cliente.Apellido}`, 10, 29);
+  pdf.text(`N° Cliente: ${String(cliente.Número).padStart(3, '0')}`, 10, 35);
+
+  pdf.setTextColor(0, 150, 0);
+  pdf.text(`Saldo Final: $${saldoFinal.toFixed(2)}`, 10, 41);
+  pdf.setTextColor(0, 0, 0);
+
+  // Mostrar filtros
+  let filtroTexto = 'Sin filtros especiales';
+  if (filtroSaldoCero) {
+    filtroTexto = 'Desde Saldo Cero';
+  } else if (filtroDesdeHasta) {
+    filtroTexto = `Desde ${fechaDesde} Hasta ${fechaHasta}`;
+  }
+  pdf.text(`Filtro aplicado: ${filtroTexto}`, 10, 47);
+
+  // 3) PREPARAR FILAS PARA jspdf-autotable
+
+  // Cada movimiento será una fila. Si tiene detalles (factura o NC),
+  // concatenamos los detalles en una celda "Detalles".
+  const rows = movimientosFiltrados.map((mov) => {
+    // Convertir fecha a legible
+    const fechaMov = mov.fecha ? new Date(mov.fecha).toLocaleDateString('es-AR') : '-';
+    // Juntar detalles si existen
+    let detalleStr = '';
+    const dets = detallesPorMovimiento[mov.codigo];
+    if (dets && dets.length > 0) {
+      // Construir un string con cada línea "Artículo - Descripción (xCant)"
+      detalleStr = dets
+        .map(
+          (d) =>
+            `${d.Articulo_Detalle} - ${d.Descripcion_Detalle} (x${d.Cantidad_Detalle})`
+        )
+        .join('\n');
     }
 
-    // Ordenar los movimientos: del más reciente al más antiguo (según el valor de 'índice')
-    movimientosFiltrados.sort((a, b) => b.índice - a.índice);
+    return {
+      indice: mov.índice || '-',
+      fecha: fechaMov,
+      comprobante: mov.nombre_comprobante,
+      importe: `$${mov.importe_total.toFixed(2)}`,
+      saldoParcial:
+        mov.saldo_parcial !== undefined ? `$${mov.saldo_parcial.toFixed(2)}` : '-',
+      detalles: detalleStr,
+    };
+  });
 
-    // Crear una instancia de jsPDF para formato A4
-    const doc = new jsPDF('p', 'mm', 'a4');
+  // 4) DEFINIR COLUMNAS DE LA TABLA
+  const columns = [
+    { header: 'Índice', dataKey: 'indice' },
+    { header: 'Fecha', dataKey: 'fecha' },
+    { header: 'Comprobante', dataKey: 'comprobante' },
+    { header: 'Importe', dataKey: 'importe' },
+    { header: 'Saldo Parcial', dataKey: 'saldoParcial' },
+    { header: 'Detalles', dataKey: 'detalles' },
+  ];
 
-    const margin = 10;
-    let yPos = 10;
+  // 5) GENERAR TABLA
+  autoTable(pdf, {
+    startY: 55,
+    head: columns,
+    body: rows,
+    theme: 'grid',
+    styles: { fontSize: 9, cellPadding: 2 },
+    headStyles: { fillColor: [22, 160, 133] }, // verde turquesa
+    bodyStyles: {
+      // Permite que la celda de "Detalles" haga salto de línea
+      minCellHeight: 5,
+      overflow: 'linebreak',
+    },
+  });
 
-    // Agregar encabezado
-    doc.setFontSize(16);
-    doc.text("Lambda", margin + 45, yPos + 10);
-    yPos += 25;
-
-    doc.setFontSize(12);
-    doc.text(`Cliente: ${cliente.Nombre} ${cliente.Apellido}`, margin, yPos);
-    yPos += 7;
-    doc.text(`Número: ${cliente.Número}`, margin, yPos);
-    yPos += 7;
-    doc.text(`Saldo: $${saldo.toFixed(2)}`, margin, yPos);
-    yPos += 7;
-    doc.text(`Fecha: ${new Date().toLocaleDateString('es-AR')}`, margin, yPos);
-    yPos += 10;
-
-    // Datos de la cuenta
-    doc.text("Cuenta: Caja de ahorro en pesos", margin, yPos);
-    yPos += 7;
-    doc.text("N° Cuenta: 4007844-1 373-4", margin, yPos);
-    yPos += 7;
-    doc.text("CBU: 0070373230004007844141", margin, yPos);
-    yPos += 10;
-
-    // Sección de Análisis de Saldo
-    doc.setFontSize(14);
-    doc.text("Análisis de Saldo", margin, yPos);
-    yPos += 7;
-
-    // Agregar encabezado para la lista de movimientos
-    doc.setFontSize(10);
-    doc.text("Movimientos:", margin, yPos);
-    yPos += 7;
-    doc.text("Índice | Fecha | Comprobante | Importe Total | Saldo Parcial", margin, yPos);
-    yPos += 7;
-
-    // Listar los movimientos filtrados
-    movimientosFiltrados.forEach(mov => {
-      const fecha = mov.fecha ? new Date(mov.fecha).toLocaleDateString('es-AR') : '-';
-      const linea = `${mov.índice} | ${fecha} | ${mov.nombre_comprobante} | $${mov.importe_total.toFixed(
-        2
-      )} | $${mov.saldo_parcial.toFixed(2)}`;
-      doc.text(linea, margin, yPos);
-      yPos += 7;
-      if (yPos > 280) {
-        doc.addPage();
-        yPos = 10;
-      }
-    });
-
-    // Guardar el PDF con un nombre basado en el número de cliente
-    doc.save(`Informe_${cliente.Número}.pdf`);
-  } catch (error: any) {
-    alert(`Error generando PDF: ${error.message}`);
-    console.error(error);
-  }
-};
-
-export default generarPDF;
+  // 6) Guardar/descargar
+  pdf.save(`Informe_Cliente_${cliente.Número}_${fechaActual}.pdf`);
+}

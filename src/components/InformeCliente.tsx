@@ -8,6 +8,7 @@ import { formatNumeroFactura } from '../utils/numeroFacturaMap';
 import { Cliente } from '../types/cliente';
 import './InformeCliente.css';
 import { Movimiento } from '../types/movimiento';
+import { generarInformePDF } from '../utils/generarPDF'; // Importar la función para PDF
 
 type InformeClienteProps = {
   onBack: () => void;
@@ -22,29 +23,23 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
   const isLoading = isLoadingMovDetalles || isLoadingMov || isLoadingSaldo;
 
   // -----------------------------------------------------------------
-  // ESTADOS Y LÓGICA PARA "GENERAR INFORME PDF"
+  // ESTADOS Y LÓGICA DE FILTRO (SALDO CERO / DESDE-HASTA)
   // -----------------------------------------------------------------
-
-  // Opciones de filtro
   const [saldoCero, setSaldoCero] = useState<boolean>(false);
   const [desdeHasta, setDesdeHasta] = useState<boolean>(false);
-
-  // Valor por defecto para "Hasta" => hoy + 3 días
   const [fechaDesde, setFechaDesde] = useState<string>('');
   const [fechaHasta, setFechaHasta] = useState<string>(
     new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   );
 
-  // Este botón está habilitado por defecto, ya que aquí siempre hay un cliente seleccionado
   const generarPDFEnabled = true;
 
-  // Nuevo estado: mostrar/ocultar el menú desplegable
+  // Menú desplegable
   const [showPDFOptions, setShowPDFOptions] = useState<boolean>(false);
   const togglePDFOptions = () => {
     setShowPDFOptions(!showPDFOptions);
   };
 
-  // Manejar checkboxes
   const handleCheckboxChange = (checkbox: string) => {
     if (checkbox === 'saldoCero') {
       setSaldoCero(!saldoCero);
@@ -55,13 +50,11 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     }
   };
 
-  // Validaciones de fechas
   const handleFechaDesdeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const nuevaFechaDesde = e.target.value;
     const dateDesde = new Date(nuevaFechaDesde);
     const dateHasta = new Date(fechaHasta);
 
-    // Evitar que "Desde" sea posterior a "Hasta"
     if (dateDesde > dateHasta) {
       alert("La fecha 'Desde' debe ser igual o anterior a 'Hasta'.");
       return;
@@ -74,7 +67,6 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     const dateHasta = new Date(nuevaFechaHasta);
     const dateDesde = new Date(fechaDesde);
 
-    // Evitar que "Hasta" sea anterior a "Desde"
     if (fechaDesde && dateHasta < dateDesde) {
       alert("La fecha 'Hasta' debe ser igual o posterior a 'Desde'.");
       return;
@@ -82,23 +74,9 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     setFechaHasta(nuevaFechaHasta);
   };
 
-  // Evento para generar el PDF
-  const handleGenerarPDF = () => {
-    console.log('Generando PDF desde InformeCliente.tsx...');
-    console.log(`Filtro "Desde Saldo Cero": ${saldoCero}`);
-    console.log(`Filtro "Desde y Hasta": ${desdeHasta}`);
-    console.log(`Fecha Desde: ${fechaDesde}`);
-    console.log(`Fecha Hasta: ${fechaHasta}`);
-
-    // Aquí realizar la llamada real a la función o servicio que genere el PDF
-    // p.ej. generarInformePDF({ saldoCero, desdeHasta, fechaDesde, fechaHasta, cliente });
-  };
-
   // -----------------------------------------------------------------
-  // LÓGICA EXISTENTE PARA MOSTRAR MOVIMIENTOS, SALDO, ETC.
+  // LÓGICA EXISTENTE: SALDOS Y MOVIMIENTOS
   // -----------------------------------------------------------------
-
-  // Formateador de números
   const formatter = (value: number) => {
     if (Math.abs(value) < 0.99) return '0.00';
     return new Intl.NumberFormat('es-AR', {
@@ -113,7 +91,6 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     return string.charAt(0).toUpperCase() + string.slice(1);
   };
 
-  // Función auxiliar para obtener el nombre del color según la cantidad de días transcurridos
   const getColorNameByDays = (dias: number) => {
     if (dias <= 7) return 'Verde';
     else if (dias >= 8 && dias <= 14) return 'Amarillo';
@@ -152,17 +129,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     return {
       ...mov,
       saldo_parcial: saldoAcumulado,
-      índice: index + 2, // El índice 1 corresponde al saldo inicial
-      efectivo: mov.efectivo ?? null,
-      cod_cli_prov: mov.cod_cli_prov,
-      tipo_comprobante: mov.tipo_comprobante,
-      importe_neto: mov.importe_neto,
-      fecha_vto: mov.fecha_vto,
-      fecha_comprobante: mov.fecha_comprobante,
-      comentario: mov.comentario,
-      estado: Number(mov.estado),
-      codigo: Number(mov.codigo),
-      numero: Number(mov.numero),
+      índice: index + 2,
     } as Movimiento;
   });
 
@@ -193,7 +160,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
       ? movimientosConSaldoInicial[movimientosConSaldoInicial.length - 1].saldo_parcial
       : saldoInicial;
 
-  // Agrupar detalles por movimiento
+  // Detalles de movimiento
   const detallesPorMovimiento = movDetalles.reduce((acc, detalle) => {
     const { Codigo_Movimiento } = detalle;
     if (!acc[Codigo_Movimiento]) acc[Codigo_Movimiento] = [];
@@ -201,7 +168,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     return acc;
   }, {} as Record<number, Mov_Detalle[]>);
 
-  // Agrupar movimientos por mes (para encabezados de mes)
+  // Agrupar movimientos por mes
   const movimientosPorMes = movimientosConSaldoInicial.reduce((acc, mov) => {
     if (mov.fecha) {
       const fecha = new Date(mov.fecha);
@@ -217,17 +184,12 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     return acc;
   }, {} as Record<string, Movimiento[]>);
 
-  // Función para detectar Nota de Crédito
   const esNotaDeCredito = (nombreComprobante: string): boolean => {
-    const comprobanteLimpio = nombreComprobante.trim().toUpperCase();
-    return (
-      comprobanteLimpio.includes('N/C') ||
-      comprobanteLimpio.startsWith('N') ||
-      comprobanteLimpio.includes('NOTA DE CRÉDITO')
-    );
+    const c = nombreComprobante.trim().toUpperCase();
+    return c.includes('N/C') || c.startsWith('N') || c.includes('NOTA DE CRÉDITO');
   };
 
-  // Cálculo de facturas involucradas en el saldo pendiente
+  // Calcular facturas involucradas (colores) - se usa para pintar
   const facturasInvolucradasMap: Record<
     number,
     { montoInvolucrado: number; porcentaje: number; diasTranscurridos: number; color: string }
@@ -235,11 +197,10 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
 
   if (saldoFinal > 0) {
     let saldoPendiente = saldoFinal;
-    // Filtrar movimientos que sean facturas (excluyendo "Saldo Inicial")
     const facturas = movimientosConSaldoInicial.filter((mov) =>
       ['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante)
     );
-    // Ordenar de más recientes a más antiguas
+    // De más recientes a más antiguas
     const facturasDesc = facturas.sort((a, b) => b.índice - a.índice);
     for (const factura of facturasDesc) {
       if (saldoPendiente <= 0) break;
@@ -250,9 +211,10 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
       if (factura.fecha) {
         const fechaFactura = new Date(factura.fecha);
         const hoy = new Date();
-        diasTranscurridos = Math.floor((hoy.getTime() - fechaFactura.getTime()) / (1000 * 60 * 60 * 24));
+        diasTranscurridos = Math.floor(
+          (hoy.getTime() - fechaFactura.getTime()) / (1000 * 60 * 60 * 24)
+        );
       }
-      // Asignar color según la antigüedad de la factura
       let color = '#f0f0f0';
       if (diasTranscurridos <= 7) {
         color = '#d4edda'; // Verde
@@ -275,7 +237,6 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     }
   }
 
-  // Agrupar las facturas involucradas por color para el encabezado de "Análisis de Saldo"
   const analysisGroups = Object.values(facturasInvolucradasMap).reduce(
     (acc, factura) => {
       const { color, montoInvolucrado, porcentaje } = factura;
@@ -289,10 +250,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     {} as Record<string, { totalMonto: number; totalPercentage: number }>
   );
 
-  // Orden de colores
   const orderColors = ['#d4edda', '#fff3cd', '#ffe5b4', '#f8d7da', '#800020'];
-
-  // Mapeo para la columna "Estado"
   const estadoMapping: Record<string, string> = {
     '#d4edda': '0-7 Días',
     '#fff3cd': '8-14 Días',
@@ -301,13 +259,12 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     '#800020': 'Pendiente Vencida',
   };
 
-  // Función para aplicar estilos dinámicos a cada movimiento
   const aplicarEstilosDinamicos = (mov: Movimiento) => {
     if (esNotaDeCredito(mov.nombre_comprobante)) {
-      return { backgroundColor: '#A9A9A9cc' }; // Estilo para notas de crédito
+      return { backgroundColor: '#A9A9A9cc' };
     }
     if (mov.nombre_comprobante.startsWith('R')) {
-      return { backgroundColor: '#c8e6c9' }; // Estilo para recibos
+      return { backgroundColor: '#c8e6c9' };
     }
     if (['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante)) {
       if (saldoFinal > 0 && facturasInvolucradasMap[mov.codigo]) {
@@ -318,9 +275,54 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     return {};
   };
 
+  // -----------------------------------------------------------------
+  // GENERAR PDF (filtrando según "Saldo Cero" o "Desde-Hasta")
+  // -----------------------------------------------------------------
+  const handleGenerarPDF = () => {
+    if (!cliente) return;
+
+    // 1) Creamos una copia de "movimientosConSaldoInicial"
+    //    (ya incluye el "Saldo Inicial" como índice 1)
+    let arrayConSaldo = [...movimientosConSaldoInicial];
+
+    // 2) Aplicar filtro Saldo Cero
+    if (saldoCero) {
+      const indexCero = arrayConSaldo.findIndex(
+        (m) => Math.abs(m.saldo_parcial) < 1 && m.codigo !== 0 // evitar el "Saldo Inicial"
+      );
+      if (indexCero !== -1) {
+        arrayConSaldo = arrayConSaldo.slice(indexCero);
+      }
+    }
+
+    // 3) Filtro "Desde-Hasta"
+    if (desdeHasta) {
+      const dDesde = fechaDesde ? new Date(fechaDesde) : null;
+      const dHasta = new Date(fechaHasta);
+      arrayConSaldo = arrayConSaldo.filter((mov) => {
+        if (!mov.fecha) return false; 
+        const fMov = new Date(mov.fecha);
+        if (dDesde && fMov < dDesde) return false;
+        if (fMov > dHasta) return false;
+        return true;
+      });
+    }
+
+    // 4) Llamar a la función "generarInformePDF"
+    generarInformePDF({
+      cliente,
+      saldoFinal,
+      filtroSaldoCero: saldoCero,
+      filtroDesdeHasta: desdeHasta,
+      fechaDesde,
+      fechaHasta,
+      movimientosFiltrados: arrayConSaldo,
+      detallesPorMovimiento, // Para mostrar artículos, descripciones, etc.
+    });
+  };
+
   return (
     <div className="container m-0 p-0">
-      {/* Encabezado principal */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2 className="mb-0">
@@ -337,13 +339,12 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
           </div>
         </div>
 
-        {/* BOTÓN que despliega el menú de PDF */}
+        {/* Botón que muestra el menú de PDF */}
         <div style={{ position: 'relative' }} className="no-print">
           <button className="btn btn-primary" onClick={togglePDFOptions}>
             Generar Informe PDF
           </button>
 
-          {/* Menú desplegable: solo se muestra si showPDFOptions = true */}
           {showPDFOptions && (
             <div
               style={{
@@ -356,7 +357,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                 border: '1px solid #ccc',
                 borderRadius: '4px',
                 backgroundColor: '#fff',
-                zIndex: 999, // Asegurar que quede sobre otros elementos
+                zIndex: 999,
               }}
             >
               <div className="form-check mb-1">
@@ -438,16 +439,24 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}>
+                <th
+                  style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}
+                >
                   Color
                 </th>
-                <th style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}>
+                <th
+                  style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}
+                >
                   Monto
                 </th>
-                <th style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}>
+                <th
+                  style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}
+                >
                   Porcentaje
                 </th>
-                <th style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}>
+                <th
+                  style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}
+                >
                   Estado
                 </th>
               </tr>
@@ -521,7 +530,8 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                             {comprobanteMap[mov.nombre_comprobante] || mov.nombre_comprobante}{' '}
                             <span className="text-success">
                               ${formatter(mov.importe_total)}
-                              {mov.nombre_comprobante.startsWith('RB') && typeof mov.efectivo === 'string'
+                              {mov.nombre_comprobante.startsWith('RB') &&
+                              typeof mov.efectivo === 'string'
                                 ? ` (${mov.efectivo})`
                                 : ''}
                             </span>
@@ -535,7 +545,9 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                           </p>
                           <p>
                             <strong>Fecha:</strong>{' '}
-                            {mov.fecha ? new Date(mov.fecha).toLocaleDateString('es-AR') : '-'}
+                            {mov.fecha
+                              ? new Date(mov.fecha).toLocaleDateString('es-AR')
+                              : '-'}
                           </p>
                           <p>
                             <strong>Índice:</strong> {mov.índice}
@@ -544,6 +556,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                             <strong>Saldo Parcial:</strong> ${formatter(mov.saldo_parcial)}
                           </p>
                         </div>
+
                         {/* Si la factura está involucrada en el saldo pendiente */}
                         {['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante) &&
                           facturasInvolucradasMap[mov.codigo] && (
@@ -556,6 +569,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                             </p>
                           )}
 
+                        {/* Si es factura/NC, mostramos la tabla de artículos */}
                         {[
                           'FA',
                           'FB',
@@ -582,9 +596,15 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                               <tbody>
                                 {detallesPorMovimiento[mov.codigo]?.map((detalle, detalleIndex) => (
                                   <tr key={`${detalle.Numero_Movimiento}-${detalleIndex}`}>
-                                    <td style={{ textAlign: 'left' }}>{detalle.Articulo_Detalle}</td>
-                                    <td style={{ textAlign: 'left' }}>{detalle.Descripcion_Detalle}</td>
-                                    <td style={{ textAlign: 'left' }}>{detalle.Cantidad_Detalle}</td>
+                                    <td style={{ textAlign: 'left' }}>
+                                      {detalle.Articulo_Detalle}
+                                    </td>
+                                    <td style={{ textAlign: 'left' }}>
+                                      {detalle.Descripcion_Detalle}
+                                    </td>
+                                    <td style={{ textAlign: 'left' }}>
+                                      {detalle.Cantidad_Detalle}
+                                    </td>
                                   </tr>
                                 ))}
                               </tbody>
