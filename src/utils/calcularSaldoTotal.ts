@@ -19,13 +19,18 @@ const calcularSaldoTotal = (saldoInicial: number, movimientos: Movimiento[]): nu
         'Mov. Cli.'
       ].includes(mov.nombre_comprobante)
     ) {
-      // Es un movimiento de crédito, se suma el importe
+      // Movimiento de crédito: se suma el importe
       saldoAcumulado += mov.importe_total;
     } else if (mov.nombre_comprobante.startsWith('RB')) {
-      // Es un movimiento de débito, se resta el importe
+      // Movimiento de débito: se resta el importe
       saldoAcumulado -= mov.importe_total;
     }
   });
+
+  // Si el saldo acumulado es cercano a cero (entre -0,99 y 0,99), lo consideramos 0
+  if (saldoAcumulado >= -0.99 && saldoAcumulado <= 0.99) {
+    saldoAcumulado = 0;
+  }
 
   return saldoAcumulado;
 };

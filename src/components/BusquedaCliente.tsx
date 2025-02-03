@@ -11,7 +11,7 @@ import { Mov_Detalle } from '../types/movimiento_detalle';
 import InformeCliente from './InformeCliente';
 import './BusquedaCliente.css';
 
-// Importamos la función que genera el PDF:
+// Importamos la función que genera el PDF (por si la quisieras usar aquí)
 import { generarInformePDF } from '../utils/generarPDF';
 
 const MAX_RESULTS = 10;
@@ -75,7 +75,7 @@ const BusquedaCliente = () => {
       setMovimientosCliente(movimientos);
 
       // 2) Obtener detalles de movimientos
-      const detalles = ((await fetchMovDetalles(cliente.Número)) ?? []) as Mov_Detalle[]; // Garantizamos que sea un array
+      const detalles = ((await fetchMovDetalles(cliente.Número)) ?? []) as Mov_Detalle[];
       setMovDetallesCliente(detalles);
 
       // 3) Calcular el saldo total usando la función
@@ -97,7 +97,6 @@ const BusquedaCliente = () => {
 
   const handleVerMovimientos = () => {
     if (selectedCliente) {
-      // Ya se han realizado fetchMovimientos / fetchMovDetalles en handleSelectCliente
       setShowInforme(true);
     }
   };
@@ -107,7 +106,8 @@ const BusquedaCliente = () => {
   };
 
   /**
-   * Lógica para generar PDF desde la pantalla 1
+   * Lógica de ejemplo para generar PDF desde esta pantalla
+   * (en caso de que quieras un botón "Generar PDF" aquí directamente).
    */
   const handleGenerarPDF = () => {
     if (!selectedCliente) {
@@ -118,13 +118,13 @@ const BusquedaCliente = () => {
     console.log('Generando PDF con los filtros aplicados...');
     console.log(`Saldo Cero: ${saldoCero}, DesdeHasta: ${desdeHasta}`);
 
-    // 1) Ordenar movimientos por fecha (ascendente) para luego recalcular saldo parcial
+    // 1) Ordenar movimientos por fecha (asc)
     const sortedMovs = [...movimientosCliente].sort(
       (a, b) => new Date(a.fecha || '').getTime() - new Date(b.fecha || '').getTime()
     );
 
-    // 2) Calcular saldo parcial igual que en InformeCliente (agregar índice)
-    let saldoAcumulado = selectedCliente.saldo ?? 0; // O el "saldoInicial" real
+    // 2) Calcular saldo parcial (similar a InformeCliente)
+    let saldoAcumulado = selectedCliente.saldo ?? 0;
     const movimientosConSaldoParcial = sortedMovs.map((mov, index) => {
       if (
         [
@@ -144,6 +144,12 @@ const BusquedaCliente = () => {
       } else if (mov.nombre_comprobante.startsWith('RB')) {
         saldoAcumulado -= mov.importe_total;
       }
+
+      // Si el saldo acumulado está cerca de cero (entre -0.99 y 0.99), se considera 0
+      if (Math.abs(saldoAcumulado) < 1) {
+        saldoAcumulado = 0;
+      }
+
       return {
         ...mov,
         saldo_parcial: saldoAcumulado,
@@ -151,7 +157,7 @@ const BusquedaCliente = () => {
       };
     });
 
-    // 3) Filtrar según saldoCero o desdeHasta
+    // 3) Filtros
     let movimientosFiltrados: Movimiento[] = [];
 
     if (saldoCero) {
@@ -196,6 +202,7 @@ const BusquedaCliente = () => {
       fechaHasta,
       movimientosFiltrados,
       detallesPorMovimiento,
+      // Si quieres también el análisis de saldo, deberías calcularlo acá igual que en InformeCliente.
     });
   };
 
@@ -277,7 +284,7 @@ const BusquedaCliente = () => {
             Ver Movimientos
           </button>
 
-          {/* Sección de opciones para PDF */}
+          {/* Sección de opciones para PDF (ej. si generas PDF desde aquí) */}
           <div className="mt-3">
             <h5>Generar Informe PDF</h5>
             <div className="form-check">
@@ -348,7 +355,7 @@ const BusquedaCliente = () => {
                       setFechaHasta(e.target.value);
                     }}
                     min={fechaDesde || undefined}
-                    placeholder="Selecciona una fecha final (predeterminado: día actual + 3 días)"
+                    placeholder="Selecciona una fecha final"
                     className="form-control"
                   />
                 </div>
