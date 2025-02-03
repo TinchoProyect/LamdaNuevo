@@ -8,7 +8,7 @@ import { formatNumeroFactura } from '../utils/numeroFacturaMap';
 import { Cliente } from '../types/cliente';
 import './InformeCliente.css';
 import { Movimiento } from '../types/movimiento';
-import { generarInformePDF } from '../utils/generarPDF'; // Importar la función para PDF
+import { generarInformePDF } from '../utils/generarPDF';
 
 type InformeClienteProps = {
   onBack: () => void;
@@ -22,17 +22,12 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
 
   const isLoading = isLoadingMovDetalles || isLoadingMov || isLoadingSaldo;
 
-  // -----------------------------------------------------------------
-  // FUNCION DE NORMALIZACIÓN: Considera valores cercanos a 0 como 0
-  // Margen: si |valor| < 0.99 se considera 0.
-  // -----------------------------------------------------------------
+  // Función para normalizar valores cercanos a 0
   const normalize = (value: number): number => {
     return Math.abs(value) < 0.99 ? 0 : value;
   };
 
-  // -----------------------------------------------------------------
-  // ESTADOS Y LÓGICA DE FILTRO (SALDO CERO / DESDE-HASTA)
-  // -----------------------------------------------------------------
+  // Estados para filtros
   const [saldoCero, setSaldoCero] = useState<boolean>(false);
   const [desdeHasta, setDesdeHasta] = useState<boolean>(false);
   const [fechaDesde, setFechaDesde] = useState<string>('');
@@ -42,7 +37,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
 
   const generarPDFEnabled = true;
 
-  // Menú desplegable
+  // Menú desplegable para PDF
   const [showPDFOptions, setShowPDFOptions] = useState<boolean>(false);
   const togglePDFOptions = () => {
     setShowPDFOptions(!showPDFOptions);
@@ -82,9 +77,6 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     setFechaHasta(nuevaFechaHasta);
   };
 
-  // -----------------------------------------------------------------
-  // LÓGICA EXISTENTE: SALDOS Y MOVIMIENTOS
-  // -----------------------------------------------------------------
   const formatter = (value: number) => {
     if (Math.abs(value) < 0.99) return '0.00';
     return new Intl.NumberFormat('es-AR', {
@@ -107,7 +99,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     else return 'Bordeaux';
   };
 
-  // Se normaliza el saldo inicial usando la función normalize
+  // Se obtiene el saldo inicial normalizado
   const saldoInicial = saldo ? normalize(saldo.Monto) : 0;
 
   // Ordenar movimientos por fecha (ascendente)
@@ -135,7 +127,6 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     } else if (mov.nombre_comprobante.startsWith('RB')) {
       saldoAcumulado -= mov.importe_total;
     }
-    // Normalizar saldoAcumulado si está cerca de 0
     saldoAcumulado = normalize(saldoAcumulado);
     return {
       ...mov,
@@ -171,7 +162,6 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
       ? movimientosConSaldoInicial[movimientosConSaldoInicial.length - 1].saldo_parcial
       : saldoInicial;
 
-  // Detalles de movimiento
   const detallesPorMovimiento = movDetalles.reduce((acc, detalle) => {
     const { Codigo_Movimiento } = detalle;
     if (!acc[Codigo_Movimiento]) acc[Codigo_Movimiento] = [];
@@ -179,7 +169,6 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     return acc;
   }, {} as Record<number, Mov_Detalle[]>);
 
-  // Agrupar movimientos por mes
   const movimientosPorMes = movimientosConSaldoInicial.reduce((acc, mov) => {
     if (mov.fecha) {
       const fecha = new Date(mov.fecha);
@@ -200,7 +189,6 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     return c.includes('N/C') || c.startsWith('N') || c.includes('NOTA DE CRÉDITO');
   };
 
-  // Calcular facturas involucradas (colores) - se usa para pintar y para el "analysisGroups"
   const facturasInvolucradasMap: Record<
     number,
     { montoInvolucrado: number; porcentaje: number; diasTranscurridos: number; color: string }
@@ -211,7 +199,6 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     const facturas = movimientosConSaldoInicial.filter((mov) =>
       ['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante)
     );
-    // De más recientes a más antiguas
     const facturasDesc = facturas.sort((a, b) => b.índice - a.índice);
     for (const factura of facturasDesc) {
       if (saldoPendiente <= 0) break;
@@ -228,15 +215,15 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
       }
       let color = '#f0f0f0';
       if (diasTranscurridos <= 7) {
-        color = '#d4edda'; // Verde
+        color = '#d4edda';
       } else if (diasTranscurridos >= 8 && diasTranscurridos <= 14) {
-        color = '#fff3cd'; // Amarillo
+        color = '#fff3cd';
       } else if (diasTranscurridos >= 15 && diasTranscurridos <= 21) {
-        color = '#ffe5b4'; // Naranja
+        color = '#ffe5b4';
       } else if (diasTranscurridos >= 22 && diasTranscurridos <= 28) {
-        color = '#f8d7da'; // Rojo
+        color = '#f8d7da';
       } else if (diasTranscurridos >= 29) {
-        color = '#800020'; // Bordeaux
+        color = '#800020';
       }
       facturasInvolucradasMap[factura.codigo] = {
         montoInvolucrado,
@@ -248,7 +235,6 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     }
   }
 
-  // 'analysisGroups' agrupa por color
   const analysisGroups = Object.values(facturasInvolucradasMap).reduce(
     (acc, factura) => {
       const { color, montoInvolucrado, porcentaje } = factura;
@@ -287,26 +273,29 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     return {};
   };
 
-  // -----------------------------------------------------------------
-  // GENERAR PDF (filtrando según "Saldo Cero" o "Desde-Hasta")
-  // -----------------------------------------------------------------
+  /**
+   * Generar PDF filtrando según "Saldo Cero" o "Desde-Hasta"
+   */
   const handleGenerarPDF = () => {
     if (!cliente) return;
 
-    // 1) Copia de "movimientosConSaldoInicial"
+    // Copia de movimientos con saldo inicial
     let arrayConSaldo = [...movimientosConSaldoInicial];
 
-    // 2) Filtro Saldo Cero
     if (saldoCero) {
-      const indexCero = arrayConSaldo.findIndex(
-        (m) => Math.abs(m.saldo_parcial) < 0.99 && m.codigo !== 0 // evitar Saldo Inicial
-      );
+      // Buscar el último movimiento con saldo cero (excluyendo Saldo Inicial)
+      let indexCero = -1;
+      for (let i = arrayConSaldo.length - 1; i >= 0; i--) {
+        if (Math.abs(arrayConSaldo[i].saldo_parcial) < 0.99 && arrayConSaldo[i].codigo !== 0) {
+          indexCero = i;
+          break;
+        }
+      }
       if (indexCero !== -1) {
         arrayConSaldo = arrayConSaldo.slice(indexCero);
       }
     }
 
-    // 3) Filtro "Desde-Hasta"
     if (desdeHasta) {
       const dDesde = fechaDesde ? new Date(fechaDesde) : null;
       const dHasta = new Date(fechaHasta);
@@ -319,7 +308,9 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
       });
     }
 
-    // 4) Llamar a "generarInformePDF", pasando también analysisGroups
+    // Revertir el orden para que el movimiento con índice 1 quede al final
+    const movimientosFiltradosReversed = arrayConSaldo.slice().reverse();
+
     generarInformePDF({
       cliente,
       saldoFinal,
@@ -327,9 +318,8 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
       filtroDesdeHasta: desdeHasta,
       fechaDesde,
       fechaHasta,
-      movimientosFiltrados: arrayConSaldo,
+      movimientosFiltrados: movimientosFiltradosReversed,
       detallesPorMovimiento,
-      // Pasamos estos 3 para mostrar tabla de Análisis en PDF
       analysisGroups,
       orderColors,
       estadoMapping,
@@ -354,7 +344,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
           </div>
         </div>
 
-        {/* Botón que muestra el menú de PDF */}
+        {/* Botón para mostrar opciones de PDF */}
         <div style={{ position: 'relative' }} className="no-print">
           <button className="btn btn-primary" onClick={togglePDFOptions}>
             Generar Informe PDF
@@ -439,7 +429,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
         Volver
       </button>
 
-      {/* Encabezado de Análisis de Saldo */}
+      {/* Tabla de análisis de saldo */}
       {!isLoading && saldoFinal > 0 && Object.keys(analysisGroups).length > 0 && (
         <div
           className="analisis-saldo mb-4"
@@ -454,24 +444,16 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th
-                  style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}
-                >
+                <th style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}>
                   Color
                 </th>
-                <th
-                  style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}
-                >
+                <th style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}>
                   Monto
                 </th>
-                <th
-                  style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}
-                >
+                <th style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}>
                   Porcentaje
                 </th>
-                <th
-                  style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}
-                >
+                <th style={{ textAlign: 'left', padding: '5px', borderBottom: '1px solid #ccc' }}>
                   Estado
                 </th>
               </tr>
@@ -518,7 +500,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
         </div>
       ) : (
         <>
-          {/* Mostrar movimientos por mes, de más reciente a más antiguo */}
+          {/* Mostrar movimientos por mes */}
           {Object.entries(movimientosPorMes)
             .reverse()
             .map(([mesYAnio, movs]) => (
@@ -573,7 +555,6 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                           </p>
                         </div>
 
-                        {/* Factura involucrada en el saldo pendiente */}
                         {['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante) &&
                           facturasInvolucradasMap[mov.codigo] && (
                             <p className="mt-2">
@@ -585,7 +566,6 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                             </p>
                           )}
 
-                        {/* Si es factura/NC, mostramos la tabla de artículos */}
                         {[
                           'FA',
                           'FB',
@@ -634,7 +614,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
               </div>
             ))}
 
-          {/* Saldo Inicial al final */}
+          {/* Mostrar Saldo Inicial al final */}
           <div className="mb-4">
             <h4 className="text-secondary mb-3">Saldo Inicial</h4>
             <div className="border p-3 rounded">

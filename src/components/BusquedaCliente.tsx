@@ -11,7 +11,7 @@ import { Mov_Detalle } from '../types/movimiento_detalle';
 import InformeCliente from './InformeCliente';
 import './BusquedaCliente.css';
 
-// Importamos la función que genera el PDF (por si la quisieras usar aquí)
+// Importamos la función que genera el PDF
 import { generarInformePDF } from '../utils/generarPDF';
 
 const MAX_RESULTS = 10;
@@ -26,9 +26,12 @@ const BusquedaCliente = () => {
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   const [showInforme, setShowInforme] = useState<boolean>(false);
 
-  // Guardar movimientos y detalles para poder filtrar y generar PDF
+  // Guardar movimientos y detalles para filtrar y generar PDF
   const [movimientosCliente, setMovimientosCliente] = useState<Movimiento[]>([]);
   const [movDetallesCliente, setMovDetallesCliente] = useState<Mov_Detalle[]>([]);
+
+  // Nuevo estado para guardar el saldo inicial obtenido desde la base de datos
+  const [saldoInicialDB, setSaldoInicialDB] = useState<number>(0);
 
   // Estados de checkboxes y fechas (para PDF)
   const [generarPDFEnabled, setGenerarPDFEnabled] = useState<boolean>(false);
@@ -69,7 +72,8 @@ const BusquedaCliente = () => {
     try {
       // 1) Obtener saldo inicial y movimientos
       const saldoInicial = await fetchSaldo(cliente.Número); // Devuelve un número
-      const movimientos = await fetchMovimientos(cliente.Número); // Devuelve un arreglo de movimientos
+      setSaldoInicialDB(saldoInicial); // Guardamos el saldo inicial
+      const movimientos = await fetchMovimientos(cliente.Número); // Arreglo de movimientos
 
       // Guardarlos en estado
       setMovimientosCliente(movimientos);
@@ -106,8 +110,7 @@ const BusquedaCliente = () => {
   };
 
   /**
-   * Lógica de ejemplo para generar PDF desde esta pantalla
-   * (en caso de que quieras un botón "Generar PDF" aquí directamente).
+   * Lógica para generar PDF en la pantalla inicial
    */
   const handleGenerarPDF = () => {
     if (!selectedCliente) {
@@ -118,13 +121,13 @@ const BusquedaCliente = () => {
     console.log('Generando PDF con los filtros aplicados...');
     console.log(`Saldo Cero: ${saldoCero}, DesdeHasta: ${desdeHasta}`);
 
-    // 1) Ordenar movimientos por fecha (asc)
+    // 1) Ordenar movimientos por fecha (ascendente)
     const sortedMovs = [...movimientosCliente].sort(
       (a, b) => new Date(a.fecha || '').getTime() - new Date(b.fecha || '').getTime()
     );
 
-    // 2) Calcular saldo parcial (similar a InformeCliente)
-    let saldoAcumulado = selectedCliente.saldo ?? 0;
+    // 2) Calcular saldo parcial empezando desde el saldoInicialDB
+    let saldoAcumulado = saldoInicialDB;
     const movimientosConSaldoParcial = sortedMovs.map((mov, index) => {
       if (
         [
@@ -145,7 +148,6 @@ const BusquedaCliente = () => {
         saldoAcumulado -= mov.importe_total;
       }
 
-      // Si el saldo acumulado está cerca de cero (entre -0.99 y 0.99), se considera 0
       if (Math.abs(saldoAcumulado) < 1) {
         saldoAcumulado = 0;
       }
@@ -157,29 +159,58 @@ const BusquedaCliente = () => {
       };
     });
 
-    // 3) Filtros
-    let movimientosFiltrados: Movimiento[] = [];
+    // 3) Agregar el movimiento de Saldo Inicial con índice 1
+    const movimientosConSaldoInicial = [
+      {
+        codigo: 0,
+        nombre_comprobante: 'Saldo Inicial',
+        importe_total: saldoInicialDB,
+        saldo_parcial: saldoInicialDB,
+        fecha: null,
+        numero: 0,
+        índice: 1,
+        efectivo: null,
+        cod_cli_prov: 0,
+        tipo_comprobante: 0,
+        importe_neto: 0,
+        fecha_vto: '',
+        fecha_comprobante: '',
+        comentario: '',
+        estado: 0,
+      },
+      ...movimientosConSaldoParcial,
+    ];
+
+    // 4) Aplicar filtros
+    let movimientosFiltrados: Movimiento[] = movimientosConSaldoInicial;
 
     if (saldoCero) {
-      const indexCero = movimientosConSaldoParcial.findIndex(
-        (m) => Math.abs(m.saldo_parcial) < 1
-      );
+      // Buscar el último movimiento con saldo cero (excluyendo el Saldo Inicial)
+      let indexCero = -1;
+      for (let i = movimientosConSaldoInicial.length - 1; i >= 0; i--) {
+        if (
+          Math.abs(movimientosConSaldoInicial[i].saldo_parcial) < 1 &&
+          movimientosConSaldoInicial[i].codigo !== 0
+        ) {
+          indexCero = i;
+          break;
+        }
+      }
       if (indexCero !== -1) {
-        movimientosFiltrados = movimientosConSaldoParcial.slice(indexCero);
-      } else {
-        movimientosFiltrados = movimientosConSaldoParcial;
+        movimientosFiltrados = movimientosConSaldoInicial.slice(indexCero);
       }
     } else if (desdeHasta) {
       const dDesde = fechaDesde ? new Date(fechaDesde) : null;
       const dHasta = new Date(fechaHasta);
-      movimientosFiltrados = movimientosConSaldoParcial.filter((mov) => {
+      movimientosFiltrados = movimientosConSaldoInicial.filter((mov) => {
         if (!mov.fecha) return false;
         const fMov = new Date(mov.fecha);
         return (!dDesde || fMov >= dDesde) && fMov <= dHasta;
       });
-    } else {
-      movimientosFiltrados = movimientosConSaldoParcial;
     }
+
+    // 5) Revertir el orden para que el movimiento con índice 1 quede al final
+    const movimientosFiltradosReversed = movimientosFiltrados.slice().reverse();
 
     const detallesPorMovimiento = movDetallesCliente.reduce((acc, detalle) => {
       const { Codigo_Movimiento } = detalle;
@@ -188,21 +219,20 @@ const BusquedaCliente = () => {
       return acc;
     }, {} as Record<number, Mov_Detalle[]>);
 
-    const saldoFinal =
-      movimientosConSaldoParcial.length > 0
-        ? movimientosConSaldoParcial[movimientosConSaldoParcial.length - 1].saldo_parcial
+    const saldoFinalComputed =
+      movimientosConSaldoInicial.length > 0
+        ? movimientosConSaldoInicial[movimientosConSaldoInicial.length - 1].saldo_parcial
         : selectedCliente.saldo ?? 0;
 
     generarInformePDF({
       cliente: selectedCliente,
-      saldoFinal,
+      saldoFinal: saldoFinalComputed,
       filtroSaldoCero: saldoCero,
       filtroDesdeHasta: desdeHasta,
       fechaDesde,
       fechaHasta,
-      movimientosFiltrados,
+      movimientosFiltrados: movimientosFiltradosReversed,
       detallesPorMovimiento,
-      // Si quieres también el análisis de saldo, deberías calcularlo acá igual que en InformeCliente.
     });
   };
 
@@ -284,7 +314,7 @@ const BusquedaCliente = () => {
             Ver Movimientos
           </button>
 
-          {/* Sección de opciones para PDF (ej. si generas PDF desde aquí) */}
+          {/* Sección de opciones para PDF */}
           <div className="mt-3">
             <h5>Generar Informe PDF</h5>
             <div className="form-check">
@@ -325,7 +355,6 @@ const BusquedaCliente = () => {
                     onChange={(e) => {
                       const selectedDate = new Date(e.target.value);
                       const hastaDate = new Date(fechaHasta);
-
                       if (selectedDate > hastaDate) {
                         alert("La fecha 'Desde' debe ser igual o anterior a 'Hasta'.");
                         return;
@@ -337,7 +366,6 @@ const BusquedaCliente = () => {
                     className="form-control"
                   />
                 </div>
-
                 <div className="date-field">
                   <label htmlFor="fechaHasta">Hasta:</label>
                   <input
@@ -347,7 +375,6 @@ const BusquedaCliente = () => {
                     onChange={(e) => {
                       const selectedDate = new Date(e.target.value);
                       const desdeDate = new Date(fechaDesde);
-
                       if (fechaDesde && selectedDate < desdeDate) {
                         alert("La fecha 'Hasta' debe ser igual o posterior a 'Desde'.");
                         return;
