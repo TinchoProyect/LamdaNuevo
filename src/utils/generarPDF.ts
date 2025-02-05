@@ -4,9 +4,21 @@ import { Cliente } from '../types/cliente';
 import { Movimiento } from '../types/movimiento';
 import { Mov_Detalle } from '../types/movimiento_detalle';
 
+/*
 function ajustarValor(valor: number): number {
   return Math.abs(valor) <= 0.99 ? 0 : valor;
+}*/
+function ajustarValor(valor: number): string {
+  if (Math.abs(valor) <= 0.99) {
+    return '0.00';
+  }
+
+  return new Intl.NumberFormat('es-AR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(valor);
 }
+
 
 interface AnalysisGroups {
   [color: string]: {
@@ -65,7 +77,7 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
   pdf.text(`N° Cliente: ${String(cliente.Número).padStart(3, '0')}`, 10, 35);
 
   pdf.setTextColor(0, 150, 0);
-  pdf.text(`Saldo Final: $${ajustarValor(saldoFinal).toFixed(2)}`, 10, 41);
+  pdf.text(`Saldo Final: $${ajustarValor(saldoFinal)}`, 10, 41);
   pdf.setTextColor(0, 0, 0);
 
   let filtroTexto = 'Sin filtros especiales';
@@ -86,8 +98,8 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
         const group = analysisGroups[color];
         return {
           color,
-          monto: `$${ajustarValor(group.totalMonto).toFixed(2)}`,
-          porcentaje: `${ajustarValor(group.totalPercentage).toFixed(1)}%`,
+          monto: `$${ajustarValor(group.totalMonto)}`,
+          porcentaje: `${ajustarValor(group.totalPercentage)}%`,
           estado: estadoMapping[color] || '',
         };
       });
@@ -142,10 +154,10 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
       indice: mov.índice || '-',
       fecha: fechaMov,
       comprobante: mov.nombre_comprobante,
-      importe: `$${ajustarValor(mov.importe_total).toFixed(2)}`,
+      importe: `$${ajustarValor(mov.importe_total)}`,
       saldoParcial:
         mov.saldo_parcial !== undefined
-          ? `$${ajustarValor(mov.saldo_parcial).toFixed(2)}`
+          ? `$${ajustarValor(mov.saldo_parcial)}`
           : '-',
       detalles: detalleStr,
     };
