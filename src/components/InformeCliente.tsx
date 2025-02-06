@@ -37,6 +37,8 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
 
   const generarPDFEnabled = true;
 
+
+
   // Menú desplegable para PDF
   const [showPDFOptions, setShowPDFOptions] = useState<boolean>(false);
   const togglePDFOptions = () => {
@@ -347,7 +349,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
         {/* Botón para mostrar opciones de PDF */}
         <div style={{ position: 'relative' }} className="no-print">
           <button className="btn btn-primary" onClick={togglePDFOptions}>
-            Generar Informe PDF
+          Generar Informe PDF
           </button>
 
           {showPDFOptions && (

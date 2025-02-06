@@ -4,10 +4,8 @@ import { Cliente } from '../types/cliente';
 import { Movimiento } from '../types/movimiento';
 import { Mov_Detalle } from '../types/movimiento_detalle';
 
-/*
-function ajustarValor(valor: number): number {
-  return Math.abs(valor) <= 0.99 ? 0 : valor;
-}*/
+
+
 function ajustarValor(valor: number): string {
   if (Math.abs(valor) <= 0.99) {
     return '0.00';
@@ -149,12 +147,18 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
         )
         .join('\n');
     }
+    
 
+    
+    
     return {
       indice: mov.índice || '-',
       fecha: fechaMov,
       comprobante: mov.nombre_comprobante,
-      importe: `$${ajustarValor(mov.importe_total)}`,
+      //importe: `$${ajustarValor(mov.importe_total)}`,
+      importe: mov.nombre_comprobante.startsWith('RB') || mov.nombre_comprobante.startsWith('N/C')
+      ?  `<strong>$${ajustarValor(mov.importe_total)}</strong>`
+      : `$${ajustarValor(mov.importe_total)}`,
       saldoParcial:
         mov.saldo_parcial !== undefined
           ? `$${ajustarValor(mov.saldo_parcial)}`
@@ -176,13 +180,17 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
     startY: currentY,
     head: [columns.map((c) => c.header)],
     body: rows.map((r) => Object.values(r)),
+   
     theme: 'grid',
     styles: { fontSize: 9, cellPadding: 3 },
     headStyles: { fillColor: [22, 160, 133] },
     bodyStyles: {
       minCellHeight: 5,
       overflow: 'linebreak',
+      
+       
     },
+   
   });
 
   pdf.save(`Informe_Cliente_${cliente.Número}_${fechaActual}.pdf`);

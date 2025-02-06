@@ -42,6 +42,12 @@ const BusquedaCliente = () => {
     new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   );
 
+  //MODIFICACION
+   // Estado adicional para mostrar el div del formulario PDF
+   const [mostrarGenerarPDF, setMostrarGenerarPDF] = useState<boolean>(false);
+
+  //FIN DE MODIFICACION
+
   // Filtrar clientes basado en el término de búsqueda
   const filteredClientes = searchTerm
     ? clientes.filter((cliente: Cliente) => {
@@ -314,10 +320,19 @@ const BusquedaCliente = () => {
             Ver Movimientos
           </button>
 
-          {/* Sección de opciones para PDF */}
-          <div className="mt-3">
-            <h5>Generar Informe PDF</h5>
-            <div className="form-check">
+          {/* Sección de opciones para PDF */}  
+           <button
+            className="btn btn-success w-100 mt-3"
+            onClick={() => setMostrarGenerarPDF(!mostrarGenerarPDF)}
+          >
+            {mostrarGenerarPDF ? 'Ocultar opciones' : 'Generar Informe PDF'}
+          </button>
+
+          {mostrarGenerarPDF && (
+            <div className="mt-3">
+              <h5>Generar Informe PDF</h5>
+              {/* Aquí van los checkboxes y opciones del PDF */}
+              <div className="form-check">
               <input
                 type="checkbox"
                 className="form-check-input"
@@ -386,17 +401,18 @@ const BusquedaCliente = () => {
                     className="form-control"
                   />
                 </div>
-              </div>
-            )}
-
-            <button
-              className="btn btn-success w-100 mt-3"
+              </div>)}
+              <button
+              className="btn btn-success w-45 mt-3"
               onClick={handleGenerarPDF}
               disabled={!generarPDFEnabled}
             >
               Generar PDF
-            </button>
-          </div>
+            </button> 
+            </div>
+          
+          )}
+        
         </div>
       )}
     </div>
