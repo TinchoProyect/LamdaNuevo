@@ -1,7 +1,10 @@
 import { Movimiento } from '../types/movimiento';
 
-const calcularSaldoTotal = (saldoInicial: number, movimientos: Movimiento[]): number => {
+  const calcularSaldoTotal = (saldoInicial: number, movimientos: Movimiento[]): number => {
   let saldoAcumulado = saldoInicial || 0;
+
+ 
+  
 
   movimientos.forEach((mov: Movimiento) => {
     if (

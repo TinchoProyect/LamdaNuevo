@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState } from 'react';
 import { useClientes } from '../context/ClientesContext';
 import { useMovimientos } from '../context/MovimientoContext';
@@ -133,7 +134,7 @@ const BusquedaCliente = () => {
     );
 
     // 2) Calcular saldo parcial empezando desde el saldoInicialDB
-    let saldoAcumulado = saldoInicialDB;
+    let saldoAcumulado = saldoInicialDB ;
     const movimientosConSaldoParcial = sortedMovs.map((mov, index) => {
       if (
         [
@@ -306,7 +307,10 @@ const BusquedaCliente = () => {
               </p>
               {selectedCliente.saldo !== null && selectedCliente.saldo !== undefined && (
                 <p>
-                  <strong>Saldo:</strong> ${selectedCliente.saldo.toFixed(2)}
+                  <strong>Saldo:</strong> ${Intl.NumberFormat('es-ES', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                            }).format(selectedCliente.saldo)}
                 </p>
               )}
             </div>
