@@ -45,6 +45,8 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
 
   const generarPDFEnabled = true;
 
+
+
   // Menú desplegable para PDF
   const [showPDFOptions, setShowPDFOptions] = useState<boolean>(false);
   const togglePDFOptions = () => {
@@ -275,7 +277,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     }
     if (['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante)) {
       if (saldoFinal > 0 && facturasInvolucradasMap[mov.codigo]) {
-        return { backgroundColor: facturasInvolucradasMap[mov.codigo].color };
+        return { backgroundColor: facturasInvolucradasMap[mov.codigo] };
       }
       return { backgroundColor: '#f0f0f0' };
     }
@@ -377,7 +379,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
         {/* Botones para opciones de PDF e impresión nativa */}
         <div style={{ position: 'relative' }} className="no-print">
           <button className="btn btn-primary" onClick={togglePDFOptions}>
-            Generar Informe PDF
+          Generar Informe PDF
           </button>
 
           {showPDFOptions && (

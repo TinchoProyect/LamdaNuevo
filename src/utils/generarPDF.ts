@@ -4,10 +4,8 @@ import { Cliente } from '../types/cliente';
 import { Movimiento } from '../types/movimiento';
 import { Mov_Detalle } from '../types/movimiento_detalle';
 
-/*
-function ajustarValor(valor: number): number {
-  return Math.abs(valor) <= 0.99 ? 0 : valor;
-}*/
+
+
 function ajustarValor(valor: number): string {
   if (Math.abs(valor) <= 0.99) {
     return '0.00';
@@ -91,6 +89,7 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
     filtroTexto = `Desde ${fechaDesde} Hasta ${fechaHasta}`;
   }
   pdf.text(`Filtro aplicado: ${filtroTexto}`, 10, 47);
+  
 
   let currentY = 55;
   const colorsExist = orderColors.length > 0 && Object.keys(analysisGroups).length > 0;
@@ -153,7 +152,10 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
         )
         .join('\n');
     }
+    
 
+    
+    
     return {
       indice: mov.índice || '-',
       fecha: fechaMov,
@@ -180,13 +182,17 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
     startY: currentY,
     head: [columns.map((c) => c.header)],
     body: rows.map((r) => Object.values(r)),
+   
     theme: 'grid',
     styles: { fontSize: 9, cellPadding: 3 },
     headStyles: { fillColor: [22, 160, 133] },
     bodyStyles: {
       minCellHeight: 5,
       overflow: 'linebreak',
+      
+       
     },
+   
   });
 
   // Se utiliza el nombre de archivo personalizado si se recibió, sino se arma uno por defecto
