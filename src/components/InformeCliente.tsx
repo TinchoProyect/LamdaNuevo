@@ -311,7 +311,10 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     // Revertir el orden para que el movimiento con índice 1 quede al final
     const movimientosFiltradosReversed = arrayConSaldo.slice().reverse();
 
+    const nombreArchivo = `${cliente?.Número} - ${cliente?.Nombre} - Resumen de cuenta - ${fechaActual}`;
+    
     generarInformePDF({
+        nombreArchivo,
       cliente,
       saldoFinal,
       filtroSaldoCero: saldoCero,
