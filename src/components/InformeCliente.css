@@ -1,34 +1,72 @@
-.container {
-    padding: 5px; /* Reduce padding for the container */
-    font-size: 0.9rem;
-}
-h4 {
-    color: #4a4a4a;
-}
-.table {
-    margin-bottom: 0;
-}
-    .table th,
-    .table td {
-        padding: 2px; /* Reduce horizontal spacing */
-        page-break-inside: avoid; /* Prevent page breaks inside table rows */
-    text-align: center;
-}
-
 /* Reglas para impresión */
 @media print {
     @page {
-        size: A4 portrait; /* Configura el tamaño de la página en vertical */
-        margin: 20mm; /* Margen de la página */
+        size: A4 portrait; /* Orientación vertical */
+        margin: 10mm; /* Márgenes reducidos para aprovechar el espacio */
     }
     body {
-        zoom: 0.9; /* Ajusta el zoom para mantener proporciones */
+        margin: 0;
+        padding: 0;
+        zoom: 1; /* Se elimina el zoom forzado para evitar escalados erróneos */
+        -webkit-print-color-adjust: exact;
     }
     .no-print {
-        display: none; /* Oculta elementos que no deben aparecer en la impresión */
+        display: none; /* Oculta elementos que no deben imprimirse */
+    }
+    .container {
+        padding: 0;
+        margin: 0 auto;
+        width: 100%;
+    }
+    /* Evita que el encabezado y la sección de análisis se dividan entre páginas */
+    .container > div:first-child,
+    .analisis-saldo {
+        page-break-after: avoid;
+        page-break-inside: avoid;
+    }
+    /* --- Ajustes específicos para el encabezado y datos del cliente --- */
+    /* Reducir al mínimo el margen y padding del contenedor del encabezado */
+    .d-flex.justify-content-between.align-items-center.mb-4 {
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+    }
+    /* Eliminar márgenes internos de los elementos hijos dentro del encabezado */
+    .d-flex.justify-content-between.align-items-center.mb-4 > div {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    /* Ajustar tamaños de fuente y márgenes para títulos y datos */
+    .d-flex.justify-content-between.align-items-center.mb-4 > div h2 {
+        font-size: 1.4rem;
+        margin-bottom: 0.1rem;
+    }
+    .d-flex.justify-content-between.align-items-center.mb-4 > div h4 {
+        font-size: 1.1rem;
+        margin: 0.1rem 0;
+    }
+    .d-flex.justify-content-between.align-items-center.mb-4 > div small {
+        font-size: 0.9rem;
+        margin-top: 0;
+    }
+    /* Reducción general de los tamaños de los títulos en impresión */
+    h2 {
+        font-size: 1.4rem;
+    }
+    h4 {
+        font-size: 1.1rem;
+    }
+    h5 {
+        font-size: 1rem;
+    }
+    /* Ajuste para las tablas en impresión */
+    .table {
+        width: 100%;
+        border-collapse: collapse;
     }
     .table th,
     .table td {
-        font-size: 0.7rem; /* Cambia el tamaño de la tipografía a más pequeña para impresión */
+        padding: 1px; /* Espaciado aún más reducido */
+        font-size: 0.7rem; /* Tipografía pequeña, pero legible */
+        page-break-inside: avoid;
     }
 }

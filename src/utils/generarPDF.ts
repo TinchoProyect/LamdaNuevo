@@ -18,7 +18,9 @@ interface ColorEstadoMap {
   [color: string]: string;
 }
 
+// Se agregó la propiedad opcional nombreArchivo para poder recibir el nombre personalizado
 interface GenerarInformePDFParams {
+  nombreArchivo?: string;
   cliente: Cliente;
   saldoFinal: number;
   filtroSaldoCero: boolean;
@@ -34,6 +36,7 @@ interface GenerarInformePDFParams {
 
 export function generarInformePDF(params: GenerarInformePDFParams) {
   const {
+    nombreArchivo,
     cliente,
     saldoFinal,
     filtroSaldoCero,
@@ -53,6 +56,7 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
     format: 'a4',
   });
 
+  // Se utiliza el formato local para la cabecera; el nombre del archivo se usará desde la propiedad pasada
   const fechaActual = new Date().toLocaleDateString('es-AR');
 
   pdf.setFontSize(14);
@@ -173,5 +177,10 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
     },
   });
 
-  pdf.save(`Informe_Cliente_${cliente.Número}_${fechaActual}.pdf`);
+  // Se utiliza el nombre de archivo personalizado si se recibió, sino se arma uno por defecto
+  pdf.save(
+    nombreArchivo
+      ? nombreArchivo
+      : `Informe_Cliente_${cliente.Número}_${fechaActual}.pdf`
+  );
 }

@@ -27,6 +27,14 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     return Math.abs(value) < 0.99 ? 0 : value;
   };
 
+  // Función auxiliar para formatear fecha en DD-MM-YYYY
+  const formatFecha = (date: Date): string => {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
   // Estados para filtros
   const [saldoCero, setSaldoCero] = useState<boolean>(false);
   const [desdeHasta, setDesdeHasta] = useState<boolean>(false);
@@ -85,6 +93,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     }).format(value);
   };
 
+  // Se sigue utilizando para la cabecera (puede mantenerse el formato local)
   const fechaActual = new Date().toLocaleDateString('es-AR');
 
   const capitalizeFirstLetter = (string: string) => {
@@ -311,10 +320,12 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     // Revertir el orden para que el movimiento con índice 1 quede al final
     const movimientosFiltradosReversed = arrayConSaldo.slice().reverse();
 
-    const nombreArchivo = `${cliente?.Número} - ${cliente?.Nombre} - Resumen de cuenta - ${fechaActual}`;
+    // Formatear la fecha actual en DD-MM-YYYY para el nombre del archivo
+    const fechaActualFormatted = formatFecha(new Date());
+    const nombreArchivo = `${cliente?.Número}_${cliente?.Nombre}_Resumen de Cuenta_${fechaActualFormatted}.pdf`;
     
     generarInformePDF({
-        nombreArchivo,
+      nombreArchivo, // Se pasa el nombre de archivo personalizado
       cliente,
       saldoFinal,
       filtroSaldoCero: saldoCero,
@@ -569,17 +580,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                             </p>
                           )}
 
-                        {[
-                          'FA',
-                          'FB',
-                          'FC',
-                          'FD',
-                          'FE',
-                          'N/C A',
-                          'N/C B',
-                          'N/C C',
-                          'N/C E',
-                        ].includes(mov.nombre_comprobante) && (
+                        {['FA', 'FB', 'FC', 'FD', 'FE', 'N/C A', 'N/C B', 'N/C C', 'N/C E'].includes(mov.nombre_comprobante) && (
                           <div>
                             <table
                               className="table table-bordered mt-3"
