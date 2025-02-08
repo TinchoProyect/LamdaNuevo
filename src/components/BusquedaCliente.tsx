@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useClientes } from '../context/ClientesContext';
 import { useMovimientos } from '../context/MovimientoContext';
@@ -44,9 +43,8 @@ const BusquedaCliente = () => {
   );
 
   //MODIFICACION
-   // Estado adicional para mostrar el div del formulario PDF
-   const [mostrarGenerarPDF, setMostrarGenerarPDF] = useState<boolean>(false);
-
+  // Estado adicional para mostrar el div del formulario PDF
+  const [mostrarGenerarPDF, setMostrarGenerarPDF] = useState<boolean>(false);
   //FIN DE MODIFICACION
 
   // Filtrar clientes basado en el término de búsqueda
@@ -134,7 +132,7 @@ const BusquedaCliente = () => {
     );
 
     // 2) Calcular saldo parcial empezando desde el saldoInicialDB
-    let saldoAcumulado = saldoInicialDB ;
+    let saldoAcumulado = saldoInicialDB;
     const movimientosConSaldoParcial = sortedMovs.map((mov, index) => {
       if (
         [
@@ -231,7 +229,82 @@ const BusquedaCliente = () => {
         ? movimientosConSaldoInicial[movimientosConSaldoInicial.length - 1].saldo_parcial
         : selectedCliente.saldo ?? 0;
 
+    // *** MODIFICACIÓN: Calcular análisis de saldo para incluir "Análisis de Saldo" en el PDF ***
+    let facturasInvolucradasMap: Record<
+      number,
+      { montoInvolucrado: number; porcentaje: number; diasTranscurridos: number; color: string }
+    > = {};
+    if (saldoFinalComputed > 0) {
+      let saldoPendiente = saldoFinalComputed;
+      const facturas = movimientosConSaldoInicial.filter((mov) =>
+        ['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante)
+      );
+      const facturasDesc = facturas.sort((a, b) => b.índice - a.índice);
+      for (const factura of facturasDesc) {
+        if (saldoPendiente <= 0) break;
+        const montoFactura = factura.importe_total;
+        const montoInvolucrado = Math.min(montoFactura, saldoPendiente);
+        const porcentaje = (montoInvolucrado / saldoFinalComputed) * 100;
+        let diasTranscurridos = 0;
+        if (factura.fecha) {
+          const fechaFactura = new Date(factura.fecha);
+          const hoy = new Date();
+          diasTranscurridos = Math.floor((hoy.getTime() - fechaFactura.getTime()) / (1000 * 60 * 60 * 24));
+        }
+        let color = '#f0f0f0';
+        if (diasTranscurridos <= 7) {
+          color = '#d4edda';
+        } else if (diasTranscurridos >= 8 && diasTranscurridos <= 14) {
+          color = '#fff3cd';
+        } else if (diasTranscurridos >= 15 && diasTranscurridos <= 21) {
+          color = '#ffe5b4';
+        } else if (diasTranscurridos >= 22 && diasTranscurridos <= 28) {
+          color = '#f8d7da';
+        } else if (diasTranscurridos >= 29) {
+          color = '#800020';
+        }
+        facturasInvolucradasMap[factura.codigo] = {
+          montoInvolucrado,
+          porcentaje,
+          diasTranscurridos,
+          color,
+        };
+        saldoPendiente -= montoInvolucrado;
+      }
+    }
+
+    const analysisGroups = Object.values(facturasInvolucradasMap).reduce(
+      (acc, factura) => {
+        const { color, montoInvolucrado, porcentaje } = factura;
+        if (!acc[color]) {
+          acc[color] = { totalMonto: 0, totalPercentage: 0 };
+        }
+        acc[color].totalMonto += montoInvolucrado;
+        acc[color].totalPercentage += porcentaje;
+        return acc;
+      },
+      {} as Record<string, { totalMonto: number; totalPercentage: number }>
+    );
+
+    const orderColors = ['#d4edda', '#fff3cd', '#ffe5b4', '#f8d7da', '#800020'];
+    const estadoMapping: Record<string, string> = {
+      '#d4edda': '0-7 Días',
+      '#fff3cd': '8-14 Días',
+      '#ffe5b4': '15-21 Días',
+      '#f8d7da': 'Mas de 28 Días',
+      '#800020': 'Pendiente Vencida',
+    };
+
+    // *** MODIFICACIÓN: Establecer nombre predeterminado para el archivo PDF ***
+    const fechaActual = new Date();
+    const dia = String(fechaActual.getDate()).padStart(2, '0');
+    const mes = String(fechaActual.getMonth() + 1).padStart(2, '0');
+    const anio = fechaActual.getFullYear();
+    const fechaActualFormatted = `${dia}-${mes}-${anio}`;
+    const nombreArchivo = `${selectedCliente?.Número}_${selectedCliente?.Nombre}_Resumen de Cuenta_${fechaActualFormatted}.pdf`;
+
     generarInformePDF({
+      nombreArchivo,
       cliente: selectedCliente,
       saldoFinal: saldoFinalComputed,
       filtroSaldoCero: saldoCero,
@@ -240,6 +313,9 @@ const BusquedaCliente = () => {
       fechaHasta,
       movimientosFiltrados: movimientosFiltradosReversed,
       detallesPorMovimiento,
+      analysisGroups,
+      orderColors,
+      estadoMapping,
     });
   };
 
@@ -307,10 +383,11 @@ const BusquedaCliente = () => {
               </p>
               {selectedCliente.saldo !== null && selectedCliente.saldo !== undefined && (
                 <p>
-                  <strong>Saldo:</strong> ${Intl.NumberFormat('es-ES', {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                            }).format(selectedCliente.saldo)}
+                  <strong>Saldo:</strong> $
+                  {Intl.NumberFormat('es-ES', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }).format(selectedCliente.saldo)}
                 </p>
               )}
             </div>
@@ -324,8 +401,8 @@ const BusquedaCliente = () => {
             Ver Movimientos
           </button>
 
-          {/* Sección de opciones para PDF */}  
-           <button
+          {/* Sección de opciones para PDF */}
+          <button
             className="btn btn-success w-100 mt-3"
             onClick={() => setMostrarGenerarPDF(!mostrarGenerarPDF)}
           >
@@ -337,86 +414,85 @@ const BusquedaCliente = () => {
               <h5>Generar Informe PDF</h5>
               {/* Aquí van los checkboxes y opciones del PDF */}
               <div className="form-check">
-              <input
-                type="checkbox"
-                className="form-check-input"
-                id="saldoCero"
-                checked={saldoCero}
-                onChange={() => handleCheckboxChange('saldoCero')}
-                disabled={!selectedCliente}
-              />
-              <label className="form-check-label" htmlFor="saldoCero">
-                Desde Saldo Cero
-              </label>
-            </div>
-            <div className="form-check">
-              <input
-                type="checkbox"
-                className="form-check-input"
-                id="desdeHasta"
-                checked={desdeHasta}
-                onChange={() => handleCheckboxChange('desdeHasta')}
-                disabled={!selectedCliente}
-              />
-              <label className="form-check-label" htmlFor="desdeHasta">
-                Desde y Hasta
-              </label>
-            </div>
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id="saldoCero"
+                  checked={saldoCero}
+                  onChange={() => handleCheckboxChange('saldoCero')}
+                  disabled={!selectedCliente}
+                />
+                <label className="form-check-label" htmlFor="saldoCero">
+                  Desde Saldo Cero
+                </label>
+              </div>
+              <div className="form-check">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id="desdeHasta"
+                  checked={desdeHasta}
+                  onChange={() => handleCheckboxChange('desdeHasta')}
+                  disabled={!selectedCliente}
+                />
+                <label className="form-check-label" htmlFor="desdeHasta">
+                  Desde y Hasta
+                </label>
+              </div>
 
-            {desdeHasta && (
-              <div className="dates-container">
-                <div className="date-field">
-                  <label htmlFor="fechaDesde">Desde:</label>
-                  <input
-                    type="date"
-                    id="fechaDesde"
-                    value={fechaDesde}
-                    onChange={(e) => {
-                      const selectedDate = new Date(e.target.value);
-                      const hastaDate = new Date(fechaHasta);
-                      if (selectedDate > hastaDate) {
-                        alert("La fecha 'Desde' debe ser igual o anterior a 'Hasta'.");
-                        return;
-                      }
-                      setFechaDesde(e.target.value);
-                    }}
-                    max={fechaHasta}
-                    placeholder="Selecciona una fecha inicial"
-                    className="form-control"
-                  />
+              {desdeHasta && (
+                <div className="dates-container">
+                  <div className="date-field">
+                    <label htmlFor="fechaDesde">Desde:</label>
+                    <input
+                      type="date"
+                      id="fechaDesde"
+                      value={fechaDesde}
+                      onChange={(e) => {
+                        const selectedDate = new Date(e.target.value);
+                        const hastaDate = new Date(fechaHasta);
+                        if (selectedDate > hastaDate) {
+                          alert("La fecha 'Desde' debe ser igual o anterior a 'Hasta'.");
+                          return;
+                        }
+                        setFechaDesde(e.target.value);
+                      }}
+                      max={fechaHasta}
+                      placeholder="Selecciona una fecha inicial"
+                      className="form-control"
+                    />
+                  </div>
+                  <div className="date-field">
+                    <label htmlFor="fechaHasta">Hasta:</label>
+                    <input
+                      type="date"
+                      id="fechaHasta"
+                      value={fechaHasta}
+                      onChange={(e) => {
+                        const selectedDate = new Date(e.target.value);
+                        const desdeDate = new Date(fechaDesde);
+                        if (fechaDesde && selectedDate < desdeDate) {
+                          alert("La fecha 'Hasta' debe ser igual o posterior a 'Desde'.");
+                          return;
+                        }
+                        setFechaHasta(e.target.value);
+                      }}
+                      min={fechaDesde || undefined}
+                      placeholder="Selecciona una fecha final"
+                      className="form-control"
+                    />
+                  </div>
                 </div>
-                <div className="date-field">
-                  <label htmlFor="fechaHasta">Hasta:</label>
-                  <input
-                    type="date"
-                    id="fechaHasta"
-                    value={fechaHasta}
-                    onChange={(e) => {
-                      const selectedDate = new Date(e.target.value);
-                      const desdeDate = new Date(fechaDesde);
-                      if (fechaDesde && selectedDate < desdeDate) {
-                        alert("La fecha 'Hasta' debe ser igual o posterior a 'Desde'.");
-                        return;
-                      }
-                      setFechaHasta(e.target.value);
-                    }}
-                    min={fechaDesde || undefined}
-                    placeholder="Selecciona una fecha final"
-                    className="form-control"
-                  />
-                </div>
-              </div>)}
+              )}
               <button
-              className="btn btn-success w-45 mt-3"
-              onClick={handleGenerarPDF}
-              disabled={!generarPDFEnabled}
-            >
-              Generar PDF
-            </button> 
+                className="btn btn-success w-45 mt-3"
+                onClick={handleGenerarPDF}
+                disabled={!generarPDFEnabled}
+              >
+                Generar PDF
+              </button>
             </div>
-          
           )}
-        
         </div>
       )}
     </div>
