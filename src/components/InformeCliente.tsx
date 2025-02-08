@@ -100,14 +100,6 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     return string.charAt(0).toUpperCase() + string.slice(1);
   };
 
-  const getColorNameByDays = (dias: number) => {
-    if (dias <= 7) return 'Verde';
-    else if (dias >= 8 && dias <= 14) return 'Amarillo';
-    else if (dias >= 15 && dias <= 21) return 'Naranja';
-    else if (dias >= 22 && dias <= 28) return 'Rojo';
-    else return 'Bordeaux';
-  };
-
   // Se obtiene el saldo inicial normalizado
   const saldoInicial = saldo ? normalize(saldo.Monto) : 0;
 
@@ -611,11 +603,10 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                             {['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante) &&
                               facturasInvolucradasMap[mov.codigo] && (
                                 <p className="mt-2">
-                                  <strong>Involucrado:</strong> $
-                                  {formatter(facturasInvolucradasMap[mov.codigo].montoInvolucrado)} (
-                                  {facturasInvolucradasMap[mov.codigo].porcentaje.toFixed(1)}%, hace{' '}
-                                  {facturasInvolucradasMap[mov.codigo].diasTranscurridos} días) -{' '}
-                                  {getColorNameByDays(facturasInvolucradasMap[mov.codigo].diasTranscurridos)}
+                                <strong>Involucrado:</strong> $
+                                {formatter(facturasInvolucradasMap[mov.codigo].montoInvolucrado)} (
+                                {facturasInvolucradasMap[mov.codigo].porcentaje.toFixed(1)}%, hace{' '}
+                                {facturasInvolucradasMap[mov.codigo].diasTranscurridos} días)
                                 </p>
                               )}
 
@@ -692,8 +683,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                                 <strong>Involucrado:</strong> $
                                 {formatter(facturasInvolucradasMap[mov.codigo].montoInvolucrado)} (
                                 {facturasInvolucradasMap[mov.codigo].porcentaje.toFixed(1)}%, hace{' '}
-                                {facturasInvolucradasMap[mov.codigo].diasTranscurridos} días) -{' '}
-                                {getColorNameByDays(facturasInvolucradasMap[mov.codigo].diasTranscurridos)}
+                                {facturasInvolucradasMap[mov.codigo].diasTranscurridos} días)
                               </p>
                             )}
 
