@@ -2,71 +2,115 @@
 @media print {
     @page {
         size: A4 portrait; /* Orientación vertical */
-        margin: 10mm; /* Márgenes reducidos para aprovechar el espacio */
+        margin: 5mm 8mm; /* Márgenes reducidos */
     }
+
     body {
         margin: 0;
         padding: 0;
-        zoom: 1; /* Se elimina el zoom forzado para evitar escalados erróneos */
+        zoom: 1;
         -webkit-print-color-adjust: exact;
+        print-color-adjust: exact; /* Agregado para compatibilidad */
     }
+
     .no-print {
-        display: none; /* Oculta elementos que no deben imprimirse */
+        display: none;
     }
+
     .container {
         padding: 0;
         margin: 0 auto;
         width: 100%;
     }
+
     /* Evita que el encabezado y la sección de análisis se dividan entre páginas */
     .container > div:first-child,
     .analisis-saldo {
         page-break-after: avoid;
         page-break-inside: avoid;
     }
+
     /* --- Ajustes específicos para el encabezado y datos del cliente --- */
-    /* Reducir al mínimo el margen y padding del contenedor del encabezado */
     .d-flex.justify-content-between.align-items-center.mb-4 {
-        margin-bottom: 0 !important;
+        margin-bottom: 0 !important; /* Reducir margen inferior a 0 */
         padding-bottom: 0 !important;
     }
-    /* Eliminar márgenes internos de los elementos hijos dentro del encabezado */
+
     .d-flex.justify-content-between.align-items-center.mb-4 > div {
         margin: 0 !important;
         padding: 0 !important;
     }
-    /* Ajustar tamaños de fuente y márgenes para títulos y datos */
+
     .d-flex.justify-content-between.align-items-center.mb-4 > div h2 {
-        font-size: 1.4rem;
-        margin-bottom: 0.1rem;
+        font-size: 1.2rem;
+        margin: 0 !important; /* Elimina márgenes superior e inferior */
+        line-height: 1.0;
     }
+
     .d-flex.justify-content-between.align-items-center.mb-4 > div h4 {
-        font-size: 1.1rem;
-        margin: 0.1rem 0;
+        font-size: 1rem;
+        margin: 0 !important;
+        line-height: 1.0;
     }
+
     .d-flex.justify-content-between.align-items-center.mb-4 > div small {
-        font-size: 0.9rem;
-        margin-top: 0;
+        font-size: 0.85rem;
+        margin: 0 !important;
     }
-    /* Reducción general de los tamaños de los títulos en impresión */
+
+    /* Eliminación de margen superior del bloque de información del cliente */
+    .cliente-info {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+
+    /* Reducción general de los tamaños y márgenes de los títulos en impresión */
+    h1, h2, h3, h4, h5, h6 {
+        margin-top: 0 !important;
+        margin-bottom: 0.2rem !important;
+    }
+
     h2 {
-        font-size: 1.4rem;
+        font-size: 1.2rem;
     }
+
     h4 {
-        font-size: 1.1rem;
-    }
-    h5 {
         font-size: 1rem;
     }
+
+    h5 {
+        font-size: 0.95rem;
+    }
+
     /* Ajuste para las tablas en impresión */
     .table {
         width: 100%;
         border-collapse: collapse;
+        margin-top: -8px !important; /* Se elimina el espacio entre encabezado y tabla */
     }
+
     .table th,
     .table td {
-        padding: 1px; /* Espaciado aún más reducido */
-        font-size: 0.7rem; /* Tipografía pequeña, pero legible */
+        padding: 1px;
+        font-size: 0.7rem;
         page-break-inside: avoid;
+        text-align: center;
+    }
+
+    /* Ajuste para que las celdas no queden con demasiado espacio */
+    .table th {
+        font-weight: bold;
+        padding-top: 2px;
+        padding-bottom: 2px;
+    }
+
+    .table td {
+        padding-top: 1px;
+        padding-bottom: 1px;
+    }
+
+    /* Eliminar márgenes innecesarios de clases de Bootstrap */
+    .mb-4, .mb-3 {
+        margin-bottom: 0 !important;
     }
 }
