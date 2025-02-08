@@ -268,7 +268,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     }
     if (['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante)) {
       if (saldoFinal > 0 && facturasInvolucradasMap[mov.codigo]) {
-        return { backgroundColor: facturasInvolucradasMap[mov.codigo].color };
+        return { backgroundColor: facturasInvolucradasMap[mov.codigo] };
       }
       return { backgroundColor: '#f0f0f0' };
     }

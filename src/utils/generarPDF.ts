@@ -85,6 +85,7 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
     filtroTexto = `Desde ${fechaDesde} Hasta ${fechaHasta}`;
   }
   pdf.text(`Filtro aplicado: ${filtroTexto}`, 10, 47);
+  
 
   let currentY = 55;
   const colorsExist = orderColors.length > 0 && Object.keys(analysisGroups).length > 0;
@@ -155,10 +156,7 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
       indice: mov.índice || '-',
       fecha: fechaMov,
       comprobante: mov.nombre_comprobante,
-      //importe: `$${ajustarValor(mov.importe_total)}`,
-      importe: mov.nombre_comprobante.startsWith('RB') || mov.nombre_comprobante.startsWith('N/C')
-      ?  `<strong>$${ajustarValor(mov.importe_total)}</strong>`
-      : `$${ajustarValor(mov.importe_total)}`,
+      importe: `$${ajustarValor(mov.importe_total)}`,
       saldoParcial:
         mov.saldo_parcial !== undefined
           ? `$${ajustarValor(mov.saldo_parcial)}`

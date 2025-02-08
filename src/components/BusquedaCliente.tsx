@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useState } from 'react';
 import { useClientes } from '../context/ClientesContext';
 import { useMovimientos } from '../context/MovimientoContext';
