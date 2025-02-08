@@ -340,6 +340,22 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     });
   };
 
+  /**
+   * Función para imprimir usando la función nativa del navegador.
+   * Actualiza temporalmente el document.title para que el nombre sugerido al guardar en PDF sea dinámico.
+   */
+  const handleImprimir = () => {
+    if (!cliente) return;
+    const fechaActualFormatted = formatFecha(new Date());
+    const nombreDinamico = `${cliente?.Número}_${cliente?.Nombre}_Resumen de Cuenta_${fechaActualFormatted}`;
+    const tituloOriginal = document.title;
+    document.title = nombreDinamico;
+    window.print();
+    setTimeout(() => {
+      document.title = tituloOriginal;
+    }, 1000);
+  };
+
   return (
     <div className="container m-0 p-0">
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -358,7 +374,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
           </div>
         </div>
 
-        {/* Botón para mostrar opciones de PDF */}
+        {/* Botones para opciones de PDF e impresión nativa */}
         <div style={{ position: 'relative' }} className="no-print">
           <button className="btn btn-primary" onClick={togglePDFOptions}>
             Generar Informe PDF
@@ -436,6 +452,13 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
               </button>
             </div>
           )}
+
+          {/* Botón para imprimir usando la función nativa del navegador */}
+          <div style={{ marginTop: '10px' }}>
+            <button className="btn btn-info w-100" onClick={handleImprimir}>
+              Imprimir (Nativo)
+            </button>
+          </div>
         </div>
       </div>
 
