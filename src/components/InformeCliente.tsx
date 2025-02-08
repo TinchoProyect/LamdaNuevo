@@ -45,8 +45,6 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
 
   const generarPDFEnabled = true;
 
-
-
   // Menú desplegable para PDF
   const [showPDFOptions, setShowPDFOptions] = useState<boolean>(false);
   const togglePDFOptions = () => {
@@ -268,6 +266,11 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     '#800020': 'Pendiente Vencida',
   };
 
+  /**
+   * Se modificó la función para que, en caso de tratarse de una factura (FA, FB, FC, FD, FE)
+   * con saldo positivo, se retorne siempre un fondo gris claro, ya que el color se mostrará
+   * en el indicador visual.
+   */
   const aplicarEstilosDinamicos = (mov: Movimiento) => {
     if (esNotaDeCredito(mov.nombre_comprobante)) {
       return { backgroundColor: '#A9A9A9cc' };
@@ -276,9 +279,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
       return { backgroundColor: '#c8e6c9' };
     }
     if (['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante)) {
-      if (saldoFinal > 0 && facturasInvolucradasMap[mov.codigo]) {
-        return { backgroundColor: facturasInvolucradasMap[mov.codigo].color };
-      }
+      // Para facturas, se utiliza fondo gris claro y se agregará el indicador visual.
       return { backgroundColor: '#f0f0f0' };
     }
     return {};
@@ -379,7 +380,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
         {/* Botones para opciones de PDF e impresión nativa */}
         <div style={{ position: 'relative' }} className="no-print">
           <button className="btn btn-primary" onClick={togglePDFOptions}>
-          Generar Informe PDF
+            Generar Informe PDF
           </button>
 
           {showPDFOptions && (
@@ -558,91 +559,184 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
 
                 {movs.reverse().map((mov, movIndex) => {
                   const estiloInline = aplicarEstilosDinamicos(mov);
+                  const esFacturaConSaldoPositivo =
+                    ['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante) &&
+                    facturasInvolucradasMap[mov.codigo];
 
                   return (
                     <div key={`${mov.codigo}-${movIndex}`} className="mb-4" style={estiloInline}>
-                      <div className="border p-3 rounded">
-                        <div className="justify-content-between d-flex">
-                          <h5>
-                            {comprobanteMap[mov.nombre_comprobante] || mov.nombre_comprobante}{' '}
-                            <span className="text-success">
-                              ${formatter(mov.importe_total)}
-                              {mov.nombre_comprobante.startsWith('RB') &&
-                              typeof mov.efectivo === 'string'
-                                ? ` (${mov.efectivo})`
-                                : ''}
-                            </span>
-                          </h5>
-                          <p>
-                            <strong>Número:</strong>{' '}
-                            {formatNumeroFactura(
-                              detallesPorMovimiento[mov.codigo]?.[0]?.Punto_Venta_Detalle,
-                              mov.numero
+                      {esFacturaConSaldoPositivo ? (
+                        <div style={{ display: 'flex', alignItems: 'stretch' }}>
+                          {/* Indicador visual a la izquierda */}
+                          <div
+                            style={{
+                              width: '10px',
+                              backgroundColor: facturasInvolucradasMap[mov.codigo].color,
+                              marginRight: '10px',
+                            }}
+                          ></div>
+                          <div className="border p-3 rounded" style={{ flex: 1 }}>
+                            <div className="justify-content-between d-flex">
+                              <h5>
+                                {comprobanteMap[mov.nombre_comprobante] || mov.nombre_comprobante}{' '}
+                                <span className="text-success">
+                                  ${formatter(mov.importe_total)}
+                                  {mov.nombre_comprobante.startsWith('RB') &&
+                                  typeof mov.efectivo === 'string'
+                                    ? ` (${mov.efectivo})`
+                                    : ''}
+                                </span>
+                              </h5>
+                              <p>
+                                <strong>Número:</strong>{' '}
+                                {formatNumeroFactura(
+                                  detallesPorMovimiento[mov.codigo]?.[0]?.Punto_Venta_Detalle,
+                                  mov.numero
+                                )}
+                              </p>
+                              <p>
+                                <strong>Fecha:</strong>{' '}
+                                {mov.fecha
+                                  ? new Date(mov.fecha).toLocaleDateString('es-AR')
+                                  : '-'}
+                              </p>
+                              <p>
+                                <strong>Índice:</strong> {mov.índice}
+                              </p>
+                              <p>
+                                <strong>Saldo Parcial:</strong> ${formatter(mov.saldo_parcial)}
+                              </p>
+                            </div>
+
+                            {['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante) &&
+                              facturasInvolucradasMap[mov.codigo] && (
+                                <p className="mt-2">
+                                  <strong>Involucrado:</strong> $
+                                  {formatter(facturasInvolucradasMap[mov.codigo].montoInvolucrado)} (
+                                  {facturasInvolucradasMap[mov.codigo].porcentaje.toFixed(1)}%, hace{' '}
+                                  {facturasInvolucradasMap[mov.codigo].diasTranscurridos} días) -{' '}
+                                  {getColorNameByDays(facturasInvolucradasMap[mov.codigo].diasTranscurridos)}
+                                </p>
+                              )}
+
+                            {['FA', 'FB', 'FC', 'FD', 'FE', 'N/C A', 'N/C B', 'N/C C', 'N/C E'].includes(
+                              mov.nombre_comprobante
+                            ) && (
+                              <div>
+                                <table
+                                  className="table table-bordered mt-3"
+                                  style={{ width: '45%', marginLeft: '0', marginRight: 'auto' }}
+                                >
+                                  <thead>
+                                    <tr>
+                                      <th style={{ width: '10%', textAlign: 'left' }}>Artículo</th>
+                                      <th style={{ width: '65%', textAlign: 'left' }}>Descripción</th>
+                                      <th style={{ width: '10%', textAlign: 'left' }}>Cantidad</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {detallesPorMovimiento[mov.codigo]?.map((detalle, detalleIndex) => (
+                                      <tr key={`${detalle.Numero_Movimiento}-${detalleIndex}`}>
+                                        <td style={{ textAlign: 'left' }}>
+                                          {detalle.Articulo_Detalle}
+                                        </td>
+                                        <td style={{ textAlign: 'left' }}>
+                                          {detalle.Descripcion_Detalle}
+                                        </td>
+                                        <td style={{ textAlign: 'left' }}>
+                                          {detalle.Cantidad_Detalle}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
                             )}
-                          </p>
-                          <p>
-                            <strong>Fecha:</strong>{' '}
-                            {mov.fecha
-                              ? new Date(mov.fecha).toLocaleDateString('es-AR')
-                              : '-'}
-                          </p>
-                          <p>
-                            <strong>Índice:</strong> {mov.índice}
-                          </p>
-                          <p>
-                            <strong>Saldo Parcial:</strong> ${formatter(mov.saldo_parcial)}
-                          </p>
-                        </div>
-
-                        {['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante) &&
-                          facturasInvolucradasMap[mov.codigo] && (
-                            <p className="mt-2">
-                              <strong>Involucrado:</strong> $
-                              {formatter(facturasInvolucradasMap[mov.codigo].montoInvolucrado)} (
-                              {facturasInvolucradasMap[mov.codigo].porcentaje.toFixed(1)}%, hace{' '}
-                              {facturasInvolucradasMap[mov.codigo].diasTranscurridos} días) -{' '}
-                              {getColorNameByDays(facturasInvolucradasMap[mov.codigo].diasTranscurridos)}
-                            </p>
-                          )}
-
-                        {['FA', 'FB', 'FC', 'FD', 'FE', 'N/C A', 'N/C B', 'N/C C', 'N/C E'].includes(mov.nombre_comprobante) && (
-                          <div>
-                            <table
-                              className="table table-bordered mt-3"
-                              style={{ width: '45%', marginLeft: '0', marginRight: 'auto' }}
-                            >
-                              <thead>
-                                <tr>
-                                  <th style={{ width: '10%', textAlign: 'left' }}>Artículo</th>
-                                  <th style={{ width: '65%', textAlign: 'left' }}>Descripción</th>
-                                  <th style={{ width: '10%', textAlign: 'left' }}>Cantidad</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {detallesPorMovimiento[mov.codigo]?.map((detalle, detalleIndex) => (
-                                  <tr key={`${detalle.Numero_Movimiento}-${detalleIndex}`}>
-                                    <td style={{ textAlign: 'left' }}>
-                                      {detalle.Articulo_Detalle}
-                                    </td>
-                                    <td style={{ textAlign: 'left' }}>
-                                      {detalle.Descripcion_Detalle}
-                                    </td>
-                                    <td style={{ textAlign: 'left' }}>
-                                      {detalle.Cantidad_Detalle}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        <div className="border p-3 rounded">
+                          <div className="justify-content-between d-flex">
+                            <h5>
+                              {comprobanteMap[mov.nombre_comprobante] || mov.nombre_comprobante}{' '}
+                              <span className="text-success">
+                                ${formatter(mov.importe_total)}
+                                {mov.nombre_comprobante.startsWith('RB') &&
+                                typeof mov.efectivo === 'string'
+                                  ? ` (${mov.efectivo})`
+                                  : ''}
+                              </span>
+                            </h5>
+                            <p>
+                              <strong>Número:</strong>{' '}
+                              {formatNumeroFactura(
+                                detallesPorMovimiento[mov.codigo]?.[0]?.Punto_Venta_Detalle,
+                                mov.numero
+                              )}
+                            </p>
+                            <p>
+                              <strong>Fecha:</strong>{' '}
+                              {mov.fecha ? new Date(mov.fecha).toLocaleDateString('es-AR') : '-'}
+                            </p>
+                            <p>
+                              <strong>Índice:</strong> {mov.índice}
+                            </p>
+                            <p>
+                              <strong>Saldo Parcial:</strong> ${formatter(mov.saldo_parcial)}
+                            </p>
+                          </div>
+
+                          {['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante) &&
+                            facturasInvolucradasMap[mov.codigo] && (
+                              <p className="mt-2">
+                                <strong>Involucrado:</strong> $
+                                {formatter(facturasInvolucradasMap[mov.codigo].montoInvolucrado)} (
+                                {facturasInvolucradasMap[mov.codigo].porcentaje.toFixed(1)}%, hace{' '}
+                                {facturasInvolucradasMap[mov.codigo].diasTranscurridos} días) -{' '}
+                                {getColorNameByDays(facturasInvolucradasMap[mov.codigo].diasTranscurridos)}
+                              </p>
+                            )}
+
+                          {['FA', 'FB', 'FC', 'FD', 'FE', 'N/C A', 'N/C B', 'N/C C', 'N/C E'].includes(
+                            mov.nombre_comprobante
+                          ) && (
+                            <div>
+                              <table
+                                className="table table-bordered mt-3"
+                                style={{ width: '45%', marginLeft: '0', marginRight: 'auto' }}
+                              >
+                                <thead>
+                                  <tr>
+                                    <th style={{ width: '10%', textAlign: 'left' }}>Artículo</th>
+                                    <th style={{ width: '65%', textAlign: 'left' }}>Descripción</th>
+                                    <th style={{ width: '10%', textAlign: 'left' }}>Cantidad</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {detallesPorMovimiento[mov.codigo]?.map((detalle, detalleIndex) => (
+                                    <tr key={`${detalle.Numero_Movimiento}-${detalleIndex}`}>
+                                      <td style={{ textAlign: 'left' }}>
+                                        {detalle.Articulo_Detalle}
+                                      </td>
+                                      <td style={{ textAlign: 'left' }}>
+                                        {detalle.Descripcion_Detalle}
+                                      </td>
+                                      <td style={{ textAlign: 'left' }}>
+                                        {detalle.Cantidad_Detalle}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
             ))}
-
           {/* Mostrar Saldo Inicial al final */}
           <div className="mb-4">
             <h4 className="text-secondary mb-3">Saldo Inicial</h4>
