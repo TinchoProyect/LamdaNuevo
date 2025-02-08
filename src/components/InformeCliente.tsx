@@ -27,6 +27,14 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     return Math.abs(value) < 0.99 ? 0 : value;
   };
 
+  // Función auxiliar para formatear fecha en DD-MM-YYYY
+  const formatFecha = (date: Date): string => {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
   // Estados para filtros
   const [saldoCero, setSaldoCero] = useState<boolean>(false);
   const [desdeHasta, setDesdeHasta] = useState<boolean>(false);
@@ -85,6 +93,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     }).format(value);
   };
 
+  // Se sigue utilizando para la cabecera (puede mantenerse el formato local)
   const fechaActual = new Date().toLocaleDateString('es-AR');
 
   const capitalizeFirstLetter = (string: string) => {
@@ -311,7 +320,12 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     // Revertir el orden para que el movimiento con índice 1 quede al final
     const movimientosFiltradosReversed = arrayConSaldo.slice().reverse();
 
+    // Formatear la fecha actual en DD-MM-YYYY para el nombre del archivo
+    const fechaActualFormatted = formatFecha(new Date());
+    const nombreArchivo = `${cliente?.Número}_${cliente?.Nombre}_Resumen de Cuenta_${fechaActualFormatted}.pdf`;
+    
     generarInformePDF({
+      nombreArchivo, // Se pasa el nombre de archivo personalizado
       cliente,
       saldoFinal,
       filtroSaldoCero: saldoCero,
@@ -324,6 +338,22 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
       orderColors,
       estadoMapping,
     });
+  };
+
+  /**
+   * Función para imprimir usando la función nativa del navegador.
+   * Actualiza temporalmente el document.title para que el nombre sugerido al guardar en PDF sea dinámico.
+   */
+  const handleImprimir = () => {
+    if (!cliente) return;
+    const fechaActualFormatted = formatFecha(new Date());
+    const nombreDinamico = `${cliente?.Número}_${cliente?.Nombre}_Resumen de Cuenta_${fechaActualFormatted}`;
+    const tituloOriginal = document.title;
+    document.title = nombreDinamico;
+    window.print();
+    setTimeout(() => {
+      document.title = tituloOriginal;
+    }, 1000);
   };
 
   return (
@@ -344,7 +374,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
           </div>
         </div>
 
-        {/* Botón para mostrar opciones de PDF */}
+        {/* Botones para opciones de PDF e impresión nativa */}
         <div style={{ position: 'relative' }} className="no-print">
           <button className="btn btn-primary" onClick={togglePDFOptions}>
             Generar Informe PDF
@@ -422,6 +452,13 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
               </button>
             </div>
           )}
+
+          {/* Botón para imprimir usando la función nativa del navegador */}
+          <div style={{ marginTop: '10px' }}>
+            <button className="btn btn-info w-100" onClick={handleImprimir}>
+              Imprimir (Nativo)
+            </button>
+          </div>
         </div>
       </div>
 
@@ -566,17 +603,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                             </p>
                           )}
 
-                        {[
-                          'FA',
-                          'FB',
-                          'FC',
-                          'FD',
-                          'FE',
-                          'N/C A',
-                          'N/C B',
-                          'N/C C',
-                          'N/C E',
-                        ].includes(mov.nombre_comprobante) && (
+                        {['FA', 'FB', 'FC', 'FD', 'FE', 'N/C A', 'N/C B', 'N/C C', 'N/C E'].includes(mov.nombre_comprobante) && (
                           <div>
                             <table
                               className="table table-bordered mt-3"
