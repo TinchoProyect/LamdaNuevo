@@ -10,12 +10,24 @@ import './InformeCliente.css';
 import { Movimiento } from '../types/movimiento';
 import { generarInformePDF } from '../utils/generarPDF';
 
+// Se extienden las props para incluir los valores iniciales de filtro
 type InformeClienteProps = {
   onBack: () => void;
   cliente: Cliente | null;
+  initialFiltroSaldoCero?: boolean;
+  initialFiltroDesdeHasta?: boolean;
+  initialFechaDesde?: string;
+  initialFechaHasta?: string;
 };
 
-const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
+const InformeCliente = ({
+  onBack,
+  cliente,
+  initialFiltroSaldoCero,
+  initialFiltroDesdeHasta,
+  initialFechaDesde,
+  initialFechaHasta,
+}: InformeClienteProps) => {
   const { movDetalles, isLoadingMovDetalles } = useMovimientoDetalles();
   const { movimientos, isLoadingMov } = useMovimientos();
   const { saldo, isLoadingSaldo } = useSaldos();
@@ -35,12 +47,15 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     return `${day}-${month}-${year}`;
   };
 
-  // Estados para filtros
-  const [saldoCero, setSaldoCero] = useState<boolean>(false);
-  const [desdeHasta, setDesdeHasta] = useState<boolean>(false);
-  const [fechaDesde, setFechaDesde] = useState<string>('');
+  // Se inicializan los estados de filtro con los valores recibidos (o por defecto)
+  const [saldoCero, setSaldoCero] = useState<boolean>(initialFiltroSaldoCero || false);
+  const [desdeHasta, setDesdeHasta] = useState<boolean>(initialFiltroDesdeHasta || false);
+  const [fechaDesde, setFechaDesde] = useState<string>(initialFechaDesde || '');
   const [fechaHasta, setFechaHasta] = useState<string>(
-    new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    initialFechaHasta ||
+      new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0]
   );
 
   const generarPDFEnabled = true;
@@ -93,7 +108,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     }).format(value);
   };
 
-  // Se sigue utilizando para la cabecera (puede mantenerse el formato local)
+  // Se obtiene la fecha actual para la cabecera
   const fechaActual = new Date().toLocaleDateString('es-AR');
 
   const capitalizeFirstLetter = (string: string) => {
@@ -158,9 +173,36 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     ...movimientosConSaldoParcial,
   ];
 
+  // ***** Aplicar filtros a los movimientos para mostrarlos en pantalla y para PDF *****
+  // Se parte de la lista completa y, si se seleccionó un filtro, se descartan los movimientos previos
+  let movimientosFiltrados: Movimiento[] = movimientosConSaldoInicial;
+
+  if (saldoCero) {
+    // Buscar el último movimiento con saldo cercano a 0 (excluyendo el Saldo Inicial)
+    let indexCero = -1;
+    for (let i = movimientosFiltrados.length - 1; i >= 0; i--) {
+      if (Math.abs(movimientosFiltrados[i].saldo_parcial) < 1 && movimientosFiltrados[i].codigo !== 0) {
+        indexCero = i;
+        break;
+      }
+    }
+    if (indexCero !== -1) {
+      movimientosFiltrados = movimientosFiltrados.slice(indexCero);
+    }
+  } else if (desdeHasta) {
+    const dDesde = fechaDesde ? new Date(fechaDesde) : null;
+    const dHasta = new Date(fechaHasta);
+    movimientosFiltrados = movimientosFiltrados.filter((mov) => {
+      if (!mov.fecha) return false;
+      const fMov = new Date(mov.fecha);
+      return (!dDesde || fMov >= dDesde) && fMov <= dHasta;
+    });
+  }
+
+  // Se recalcula el saldo final a partir de los movimientos filtrados
   const saldoFinal =
-    movimientosConSaldoInicial.length > 0
-      ? movimientosConSaldoInicial[movimientosConSaldoInicial.length - 1].saldo_parcial
+    movimientosFiltrados.length > 0
+      ? movimientosFiltrados[movimientosFiltrados.length - 1].saldo_parcial
       : saldoInicial;
 
   const detallesPorMovimiento = movDetalles.reduce((acc, detalle) => {
@@ -170,7 +212,8 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     return acc;
   }, {} as Record<number, Mov_Detalle[]>);
 
-  const movimientosPorMes = movimientosConSaldoInicial.reduce((acc, mov) => {
+  // Agrupar movimientos filtrados por mes
+  const movimientosPorMes = movimientosFiltrados.reduce((acc, mov) => {
     if (mov.fecha) {
       const fecha = new Date(mov.fecha);
       const fechaUTC = new Date(
@@ -259,35 +302,16 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
   };
 
   /**
-   * Se modificó la función para que, en caso de tratarse de una factura (FA, FB, FC, FD, FE)
-   * con saldo positivo, se retorne siempre un fondo gris claro, ya que el color se mostrará
-   * en el indicador visual.
-   */
-  const aplicarEstilosDinamicos = (mov: Movimiento) => {
-    if (esNotaDeCredito(mov.nombre_comprobante)) {
-      return { backgroundColor: '#A9A9A9cc' };
-    }
-    if (mov.nombre_comprobante.startsWith('R')) {
-      return { backgroundColor: '#c8e6c9' };
-    }
-    if (['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante)) {
-      // Para facturas, se utiliza fondo gris claro y se agregará el indicador visual.
-      return { backgroundColor: '#f0f0f0' };
-    }
-    return {};
-  };
-
-  /**
-   * Generar PDF filtrando según "Saldo Cero" o "Desde-Hasta"
+   * Generar PDF utilizando los movimientos filtrados
    */
   const handleGenerarPDF = () => {
     if (!cliente) return;
 
-    // Copia de movimientos con saldo inicial
-    let arrayConSaldo = [...movimientosConSaldoInicial];
+    // Se hace una copia de los movimientos filtrados
+    let arrayConSaldo = [...movimientosFiltrados];
 
+    // En caso de que se hayan modificado los filtros desde el menú, se aplican nuevamente
     if (saldoCero) {
-      // Buscar el último movimiento con saldo cero (excluyendo Saldo Inicial)
       let indexCero = -1;
       for (let i = arrayConSaldo.length - 1; i >= 0; i--) {
         if (Math.abs(arrayConSaldo[i].saldo_parcial) < 0.99 && arrayConSaldo[i].codigo !== 0) {
@@ -320,7 +344,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
     const nombreArchivo = `${cliente?.Número}_${cliente?.Nombre}_Resumen de Cuenta_${fechaActualFormatted}.pdf`;
     
     generarInformePDF({
-      nombreArchivo, // Se pasa el nombre de archivo personalizado
+      nombreArchivo, // Nombre de archivo personalizado
       cliente,
       saldoFinal,
       filtroSaldoCero: saldoCero,
@@ -337,7 +361,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
 
   /**
    * Función para imprimir usando la función nativa del navegador.
-   * Actualiza temporalmente el document.title para que el nombre sugerido al guardar en PDF sea dinámico.
+   * Se cambia temporalmente el document.title para sugerir un nombre dinámico.
    */
   const handleImprimir = () => {
     if (!cliente) return;
@@ -532,7 +556,7 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
         </div>
       ) : (
         <>
-          {/* Mostrar movimientos por mes */}
+          {/* Mostrar movimientos filtrados por mes */}
           {Object.entries(movimientosPorMes)
             .reverse()
             .map(([mesYAnio, movs]) => (
@@ -550,7 +574,19 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                 </h4>
 
                 {movs.reverse().map((mov, movIndex) => {
-                  const estiloInline = aplicarEstilosDinamicos(mov);
+                  const estiloInline = (() => {
+                    if (esNotaDeCredito(mov.nombre_comprobante)) {
+                      return { backgroundColor: '#A9A9A9cc' };
+                    }
+                    if (mov.nombre_comprobante.startsWith('R')) {
+                      return { backgroundColor: '#c8e6c9' };
+                    }
+                    if (['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante)) {
+                      return { backgroundColor: '#f0f0f0' };
+                    }
+                    return {};
+                  })();
+
                   const esFacturaConSaldoPositivo =
                     ['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante) &&
                     facturasInvolucradasMap[mov.codigo];
@@ -603,10 +639,10 @@ const InformeCliente = ({ onBack, cliente }: InformeClienteProps) => {
                             {['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante) &&
                               facturasInvolucradasMap[mov.codigo] && (
                                 <p className="mt-2">
-                                <strong>Involucrado:</strong> $
-                                {formatter(facturasInvolucradasMap[mov.codigo].montoInvolucrado)} (
-                                {facturasInvolucradasMap[mov.codigo].porcentaje.toFixed(1)}%, hace{' '}
-                                {facturasInvolucradasMap[mov.codigo].diasTranscurridos} días)
+                                  <strong>Involucrado:</strong> $
+                                  {formatter(facturasInvolucradasMap[mov.codigo].montoInvolucrado)} (
+                                  {facturasInvolucradasMap[mov.codigo].porcentaje.toFixed(1)}%, hace{' '}
+                                  {facturasInvolucradasMap[mov.codigo].diasTranscurridos} días)
                                 </p>
                               )}
 
