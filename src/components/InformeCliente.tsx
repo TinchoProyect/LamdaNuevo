@@ -248,6 +248,8 @@ const InformeCliente = ({
       if (saldoPendiente <= 0) break;
       const montoFactura = factura.importe_total;
       const montoInvolucrado = Math.min(montoFactura, saldoPendiente);
+      // *** Nueva condición: si el monto involucrado es menor a 0.99 (saldo residual cercano a 0), se omite la factura ***
+      if (Math.abs(montoInvolucrado) < 0.99) continue;
       const porcentaje = (montoInvolucrado / saldoFinal) * 100;
       let diasTranscurridos = 0;
       if (factura.fecha) {
