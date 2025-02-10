@@ -4,6 +4,8 @@ import { Cliente } from '../types/cliente';
 import { Movimiento } from '../types/movimiento';
 import { Mov_Detalle } from '../types/movimiento_detalle';
 
+
+
 function ajustarValor(valor: number): string {
   if (Math.abs(valor) <= 0.99) {
     return '0.00';
@@ -14,6 +16,7 @@ function ajustarValor(valor: number): string {
     maximumFractionDigits: 2,
   }).format(valor);
 }
+
 
 interface AnalysisGroups {
   [color: string]: {
@@ -86,6 +89,7 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
     filtroTexto = `Desde ${fechaDesde} Hasta ${fechaHasta}`;
   }
   pdf.text(`Filtro aplicado: ${filtroTexto}`, 10, 47);
+  
 
   let currentY = 55;
   const colorsExist = orderColors.length > 0 && Object.keys(analysisGroups).length > 0;
@@ -134,15 +138,6 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
     currentY = (pdf as any).lastAutoTable.finalY + 10;
   }
 
-  // Definición de columnas SIN la columna "Índice"
-  const columns = [
-    { header: 'Fecha', dataKey: 'fecha' },
-    { header: 'Comprobante', dataKey: 'comprobante' },
-    { header: 'Importe', dataKey: 'importe' },
-    { header: 'Saldo Parcial', dataKey: 'saldoParcial' },
-    { header: 'Detalles', dataKey: 'detalles' },
-  ];
-
   const rows = movimientosFiltrados.map((mov) => {
     const fechaMov = mov.fecha
       ? new Date(mov.fecha).toLocaleDateString('es-AR')
@@ -151,15 +146,21 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
     const dets = detallesPorMovimiento[mov.codigo];
     if (dets && dets.length > 0) {
       detalleStr = dets
-        .map((d) => {
-          const articulo = d.Articulo_Detalle ? d.Articulo_Detalle : '';
-          const descripcion = d.Descripcion_Detalle ? d.Descripcion_Detalle : '';
-          const cantidad = d.Cantidad_Detalle ? d.Cantidad_Detalle : '';
-          return `${articulo} - ${descripcion} (x${cantidad})`;
-        })
+        .map(
+          (d) =>
+            `${d.Articulo_Detalle} - ${d.Descripcion_Detalle} (x${d.Cantidad_Detalle})`
+        )
         .join('\n');
     }
+    
+
+    
+    
     return {
+
+
+      
+      indice: mov.índice || '-',
       fecha: fechaMov,
       comprobante: mov.nombre_comprobante,
       importe: `$${ajustarValor(mov.importe_total)}`,
@@ -171,32 +172,30 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
     };
   });
 
+  const columns = [
+    { header: 'Índice', dataKey: 'indice' },
+    { header: 'Fecha', dataKey: 'fecha' },
+    { header: 'Comprobante', dataKey: 'comprobante' },
+    { header: 'Importe', dataKey: 'importe' },
+    { header: 'Saldo Parcial', dataKey: 'saldoParcial' },
+    { header: 'Detalles', dataKey: 'detalles' },
+  ];
+
   autoTable(pdf, {
     startY: currentY,
     head: [columns.map((c) => c.header)],
     body: rows.map((r) => Object.values(r)),
+   
     theme: 'grid',
     styles: { fontSize: 9, cellPadding: 3 },
     headStyles: { fillColor: [22, 160, 133] },
     bodyStyles: {
       minCellHeight: 5,
       overflow: 'linebreak',
+      
+       
     },
-    didParseCell: function (data) {
-      if (data.section === 'body') {
-        // Los índices de columna son:
-        // 0: Fecha, 1: Comprobante, 2: Importe, 3: Saldo Parcial, 4: Detalles
-        if (data.column.index === 1) {
-          const text = data.cell.text && data.cell.text[0] ? data.cell.text[0].trim() : '';
-          if (text.startsWith('F')) {
-            data.cell.styles.fontStyle = 'bold';
-          }
-        }
-        if (data.column.index === 2 || data.column.index === 3) {
-          data.cell.styles.fontStyle = 'bold';
-        }
-      }
-    },
+   
   });
 
   // Se utiliza el nombre de archivo personalizado si se recibió, sino se arma uno por defecto
