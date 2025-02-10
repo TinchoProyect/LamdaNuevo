@@ -1,12 +1,14 @@
 import axios from 'axios';
 
+const isDevelopment = window.location.hostname === 'localhost';
+
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
-    // Asegurarse de que las credenciales se envíen con las solicitudes
-    withCredentials: true,
     headers: {
         'Content-Type': 'application/json'
-    }
+    },
+    // Solo habilitamos withCredentials en producción
+    withCredentials: !isDevelopment
 });
 
 // Interceptor para validar HTTPS y manejar errores

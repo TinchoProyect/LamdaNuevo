@@ -1,54 +1,39 @@
-const express = require('express');
-const cors = require('cors');
+import express from 'express';
+import cors from 'cors';
+
 const app = express();
 
 // Configuración de CORS
 app.use(cors({
-    origin: 'https://lamda.netlify.app',
+    origin: function (origin, callback) {
+        const allowedOrigins = ['http://localhost:8081', 'https://lamda.netlify.app'];
+        if (allowedOrigins.includes(origin) || !origin) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept']
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // Middleware para redirigir a HTTPS
 app.use((req, res, next) => {
-    if (req.secure) {
+    if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
         next();
     } else {
         res.redirect(`https://${req.headers.host}${req.url}`);
     }
 });
 
-// Ruta de consulta
+// Rutas de la API
 app.get('/consulta', (req, res) => {
-    try {
-        // Aquí va la lógica de consulta a la base de datos
-        res.json({
-            success: true,
-            message: 'Consulta exitosa',
-            data: [] // Aquí irían los datos de la consulta
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Error en la consulta',
-            error: error.message
-        });
-    }
+    res.json({ message: 'API funcionando correctamente' });
 });
 
-// Manejo de errores global
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({
-        success: false,
-        message: 'Error interno del servidor',
-        error: err.message
-    });
-});
-
-const PORT = 20186;
+// Inicializar el servidor
+const PORT = 3001;
 app.listen(PORT, () => {
-    console.log(`Servidor corriendo en el puerto ${PORT}`);
-    console.log(`CORS configurado para aceptar solicitudes desde https://lamda.netlify.app`);
+    console.log(`Servidor corriendo en puerto ${PORT}`);
 });
