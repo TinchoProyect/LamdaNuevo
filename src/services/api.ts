@@ -2,9 +2,16 @@ import axios from 'axios';
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
+    // Asegurarse de que las credenciales se envíen con las solicitudes
+    withCredentials: true,
+    headers: {
+        'Content-Type': 'application/json',
+        // Agregar el origen explícitamente
+        'Origin': 'https://lamda.netlify.app'
+    }
 });
 
-// Interceptor para validar HTTPS
+// Interceptor para validar HTTPS y manejar errores
 api.interceptors.request.use((config) => {
     const baseURL = config.baseURL || '';
     if (!baseURL.startsWith('https://')) {
@@ -19,6 +26,11 @@ api.interceptors.response.use(
     (error) => {
         if (error.message === 'La URL de la API debe usar HTTPS') {
             console.error('Error de seguridad: La API debe usar HTTPS');
+        } else if (error.response?.status === 0 || error.code === 'ERR_NETWORK') {
+            console.error('Error de CORS o red:', 
+                'No se puede conectar con el servidor. ' +
+                'Verifica que el servidor esté configurado para aceptar solicitudes desde ' +
+                'https://lamda.netlify.app');
         } else if (error.response) {
             console.error('Error en la respuesta:', error.response.data);
         } else if (error.request) {
