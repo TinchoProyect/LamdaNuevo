@@ -5,9 +5,7 @@ const api = axios.create({
     // Asegurarse de que las credenciales se envíen con las solicitudes
     withCredentials: true,
     headers: {
-        'Content-Type': 'application/json',
-        // Agregar el origen explícitamente
-        'Origin': 'https://lamda.netlify.app'
+        'Content-Type': 'application/json'
     }
 });
 
