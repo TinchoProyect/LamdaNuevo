@@ -15,7 +15,6 @@
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "DENY"
     Content-Security-Policy = "upgrade-insecure-requests"
-    # Permitir que el navegador envíe el origen en las solicitudes preflight
     Access-Control-Allow-Origin = "https://xyz-123-456.ngrok.io"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
     Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept"

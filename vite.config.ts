@@ -9,7 +9,7 @@ export default defineConfig({
     port: 8081,
     proxy: {
       '/consulta': {
-        target: 'http://1.tcp.sa.ngrok.io:20186',
+        target: 'https://xyz-123-456.ngrok.io',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/consulta/, '')
       }
