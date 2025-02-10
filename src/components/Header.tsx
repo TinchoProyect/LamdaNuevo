@@ -1,4 +1,3 @@
-import React from 'react';
 import "./Header.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Lamda } from "../utils/empresaData";
@@ -12,7 +11,7 @@ export const Header = () => {
                     <div className="logo-section">
                         <div className="logo-wrapper">
                             <img
-                                src="/src/assets/Logo.jpg"
+                                src="/Logo.jpg"
                                 alt="Lamda Banking"
                                 className="logo"
                                 loading="lazy"

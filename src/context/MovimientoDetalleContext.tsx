@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, ReactNode } from 'react';
 import api from '../services/api'; // Reutiliza la instancia de axios
 import { Mov_Detalle } from '../types/movimiento_detalle';
 
@@ -20,7 +20,7 @@ export const MovimientoDetalleProvider = ({ children }: { children?: ReactNode }
     try {
       setIsLoadingMovDetalles(true);
       setError(null);
-      const response = await api.get<Mov_Detalle[]>(`/movimientos_detalles?clienteId=${id}`); // Usa tu instancia configurada
+      const response = await api.get<Mov_Detalle[]>(`/movimientos_detalles?clienteId=${id}`);
       setMovDetalles(response.data);
     } catch (error) {
       setError('Error al obtener los detalles de movimientos');
