@@ -44,6 +44,7 @@ const BusquedaCliente = () => {
 
   const [saldoCero, setSaldoCero] = useState<boolean>(false);
   const [desdeHasta, setDesdeHasta] = useState<boolean>(false);
+  const [facturasInvolucradas, setFacturasInvolucradas] = useState<boolean>(false);
   const [fechaDesde, setFechaDesde] = useState<string>(todayISO);
   const [fechaHasta, setFechaHasta] = useState<string>(defaultFechaHasta);
 
@@ -76,6 +77,7 @@ const BusquedaCliente = () => {
     // Al seleccionar un cliente se reinician los filtros a los valores por defecto
     setSaldoCero(false);
     setDesdeHasta(false);
+    setFacturasInvolucradas(false);
     setFechaDesde(todayISO);
     setFechaHasta(defaultFechaHasta);
 
@@ -125,10 +127,22 @@ const BusquedaCliente = () => {
   const handleCheckboxChange = (checkbox: string) => {
     if (checkbox === 'saldoCero') {
       setSaldoCero(!saldoCero);
-      if (!saldoCero) setDesdeHasta(false);
+      if (!saldoCero) {
+        setDesdeHasta(false);
+        setFacturasInvolucradas(false);
+      }
     } else if (checkbox === 'desdeHasta') {
       setDesdeHasta(!desdeHasta);
-      if (!desdeHasta) setSaldoCero(false);
+      if (!desdeHasta) {
+        setSaldoCero(false);
+        setFacturasInvolucradas(false);
+      }
+    } else if (checkbox === 'facturasInvolucradas') {
+      setFacturasInvolucradas(!facturasInvolucradas);
+      if (!facturasInvolucradas) {
+        setSaldoCero(false);
+        setDesdeHasta(false);
+      }
     }
   };
 
@@ -140,7 +154,7 @@ const BusquedaCliente = () => {
     }
 
     console.log('Generando PDF con los filtros aplicados...');
-    console.log(`Saldo Cero: ${saldoCero}, DesdeHasta: ${desdeHasta}`);
+    console.log(`Saldo Cero: ${saldoCero}, DesdeHasta: ${desdeHasta}, Facturas Involucradas: ${facturasInvolucradas}`);
 
     // 1) Ordenar movimientos por fecha (ascendente)
     const sortedMovs = [...movimientosCliente].sort(
@@ -228,6 +242,30 @@ const BusquedaCliente = () => {
         const fMov = new Date(mov.fecha);
         return (!dDesde || fMov >= dDesde) && fMov <= dHasta;
       });
+    } else if (facturasInvolucradas) {
+      // Nuevo filtro: Facturas involucradas
+      const saldoFinalComputed = movimientosConSaldoInicial[movimientosConSaldoInicial.length - 1].saldo_parcial;
+      if (saldoFinalComputed > 0) {
+        let saldoPendiente = saldoFinalComputed;
+        const facturas = movimientosConSaldoInicial.filter((mov) =>
+          ['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante)
+        );
+        const facturasDesc = facturas.sort((a, b) => b.índice - a.índice);
+        let minIndexInvolucrada = Infinity;
+        for (const factura of facturasDesc) {
+          if (saldoPendiente <= 0) break;
+          const montoFactura = factura.importe_total;
+          const montoInvolucrado = Math.min(montoFactura, saldoPendiente);
+          if (Math.abs(montoInvolucrado) < 0.99) continue;
+          if (factura.índice < minIndexInvolucrada) {
+            minIndexInvolucrada = factura.índice;
+          }
+          saldoPendiente -= montoInvolucrado;
+        }
+        if (minIndexInvolucrada !== Infinity) {
+          movimientosFiltrados = movimientosFiltrados.filter((mov) => mov.índice >= minIndexInvolucrada);
+        }
+      }
     }
 
     // 5) Revertir el orden para que el movimiento con índice 1 quede al final
@@ -325,6 +363,7 @@ const BusquedaCliente = () => {
       saldoFinal: saldoFinalComputed,
       filtroSaldoCero: saldoCero,
       filtroDesdeHasta: desdeHasta,
+      filtroFacturasInvolucradas: facturasInvolucradas,
       fechaDesde,
       fechaHasta,
       movimientosFiltrados: movimientosFiltradosReversed,
@@ -344,6 +383,7 @@ const BusquedaCliente = () => {
           cliente={selectedCliente}
           initialFiltroSaldoCero={saldoCero}
           initialFiltroDesdeHasta={desdeHasta}
+          initialFiltroFacturasInvolucradas={facturasInvolucradas}
           initialFechaDesde={fechaDesde}
           initialFechaHasta={fechaHasta}
         />
@@ -433,6 +473,21 @@ const BusquedaCliente = () => {
                     Desde y hasta
                   </label>
                 </div>
+                {/* Mostrar el filtro "Facturas involucradas" solo si el cliente tiene saldo positivo mayor a 0.99 */}
+                {selectedCliente.saldo && selectedCliente.saldo > 0.99 && (
+                  <div className="form-check">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="facturasInvolucradas"
+                      checked={facturasInvolucradas}
+                      onChange={() => handleCheckboxChange('facturasInvolucradas')}
+                    />
+                    <label className="form-check-label" htmlFor="facturasInvolucradas">
+                      Facturas involucradas
+                    </label>
+                  </div>
+                )}
                 {desdeHasta && (
                   <div className="dates-container mt-2">
                     <div className="date-field">
@@ -498,7 +553,7 @@ const BusquedaCliente = () => {
           {mostrarGenerarPDF && (
             <div className="mt-3">
               <h5>Generar Informe PDF</h5>
-              {/* Aquí se repiten los checkboxes y opciones para PDF, pero estos usarán los mismos valores de filtro */}
+              {/* Opciones de filtros para PDF */}
               <div className="form-check">
                 <input
                   type="checkbox"
@@ -525,7 +580,21 @@ const BusquedaCliente = () => {
                   Desde y hasta
                 </label>
               </div>
-
+              {selectedCliente && selectedCliente.saldo && selectedCliente.saldo > 0.99 && (
+                <div className="form-check">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    id="facturasInvolucradasPDF"
+                    checked={facturasInvolucradas}
+                    onChange={() => handleCheckboxChange('facturasInvolucradas')}
+                    disabled={!selectedCliente}
+                  />
+                  <label className="form-check-label" htmlFor="facturasInvolucradasPDF">
+                    Facturas involucradas
+                  </label>
+                </div>
+              )}
               {desdeHasta && (
                 <div className="dates-container">
                   <div className="date-field">

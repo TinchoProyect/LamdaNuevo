@@ -25,13 +25,14 @@ interface ColorEstadoMap {
   [color: string]: string;
 }
 
-// Se agregó la propiedad opcional nombreArchivo para poder recibir el nombre personalizado
+// Se agregó la propiedad opcional "filtroFacturasInvolucradas" para recibir el nuevo filtro
 interface GenerarInformePDFParams {
   nombreArchivo?: string;
   cliente: Cliente;
   saldoFinal: number;
   filtroSaldoCero: boolean;
   filtroDesdeHasta: boolean;
+  filtroFacturasInvolucradas?: boolean;
   fechaDesde?: string;
   fechaHasta?: string;
   movimientosFiltrados: Movimiento[];
@@ -48,6 +49,7 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
     saldoFinal,
     filtroSaldoCero,
     filtroDesdeHasta,
+    filtroFacturasInvolucradas,
     fechaDesde,
     fechaHasta,
     movimientosFiltrados,
@@ -84,6 +86,8 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
     filtroTexto = 'Desde Saldo Cero';
   } else if (filtroDesdeHasta) {
     filtroTexto = `Desde ${fechaDesde} Hasta ${fechaHasta}`;
+  } else if (filtroFacturasInvolucradas) {
+    filtroTexto = 'Facturas involucradas';
   }
   pdf.text(`Filtro aplicado: ${filtroTexto}`, 10, 47);
 
@@ -199,7 +203,6 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
     },
   });
 
-  // Se utiliza el nombre de archivo personalizado si se recibió, sino se arma uno por defecto
   pdf.save(
     nombreArchivo
       ? nombreArchivo

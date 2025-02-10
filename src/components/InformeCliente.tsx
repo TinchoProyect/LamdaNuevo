@@ -16,6 +16,7 @@ type InformeClienteProps = {
   cliente: Cliente | null;
   initialFiltroSaldoCero?: boolean;
   initialFiltroDesdeHasta?: boolean;
+  initialFiltroFacturasInvolucradas?: boolean;
   initialFechaDesde?: string;
   initialFechaHasta?: string;
 };
@@ -25,6 +26,7 @@ const InformeCliente = ({
   cliente,
   initialFiltroSaldoCero,
   initialFiltroDesdeHasta,
+  initialFiltroFacturasInvolucradas,
   initialFechaDesde,
   initialFechaHasta,
 }: InformeClienteProps) => {
@@ -50,6 +52,7 @@ const InformeCliente = ({
   // Se inicializan los estados de filtro con los valores recibidos (o por defecto)
   const [saldoCero, setSaldoCero] = useState<boolean>(initialFiltroSaldoCero || false);
   const [desdeHasta, setDesdeHasta] = useState<boolean>(initialFiltroDesdeHasta || false);
+  const [facturasInvolucradas, setFacturasInvolucradas] = useState<boolean>(initialFiltroFacturasInvolucradas || false);
   const [fechaDesde, setFechaDesde] = useState<string>(initialFechaDesde || '');
   const [fechaHasta, setFechaHasta] = useState<string>(
     initialFechaHasta ||
@@ -70,9 +73,15 @@ const InformeCliente = ({
     if (checkbox === 'saldoCero') {
       setSaldoCero(!saldoCero);
       setDesdeHasta(false);
+      setFacturasInvolucradas(false);
     } else if (checkbox === 'desdeHasta') {
       setDesdeHasta(!desdeHasta);
       setSaldoCero(false);
+      setFacturasInvolucradas(false);
+    } else if (checkbox === 'facturasInvolucradas') {
+      setFacturasInvolucradas(!facturasInvolucradas);
+      setSaldoCero(false);
+      setDesdeHasta(false);
     }
   };
 
@@ -174,7 +183,6 @@ const InformeCliente = ({
   ];
 
   // ***** Aplicar filtros a los movimientos para mostrarlos en pantalla y para PDF *****
-  // Se parte de la lista completa y, si se seleccionó un filtro, se descartan los movimientos previos
   let movimientosFiltrados: Movimiento[] = movimientosConSaldoInicial;
 
   if (saldoCero) {
@@ -197,10 +205,34 @@ const InformeCliente = ({
       const fMov = new Date(mov.fecha);
       return (!dDesde || fMov >= dDesde) && fMov <= dHasta;
     });
+  } else if (facturasInvolucradas) {
+    // Filtro: Facturas involucradas
+    const saldoFinalComputed = movimientosConSaldoInicial[movimientosConSaldoInicial.length - 1].saldo_parcial;
+    if (saldoFinalComputed > 0) {
+      let saldoPendiente = saldoFinalComputed;
+      const facturas = movimientosConSaldoInicial.filter((mov) =>
+        ['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante)
+      );
+      const facturasDesc = facturas.sort((a, b) => b.índice - a.índice);
+      let minIndexInvolucrada = Infinity;
+      for (const factura of facturasDesc) {
+        if (saldoPendiente <= 0) break;
+        const montoFactura = factura.importe_total;
+        const montoInvolucrado = Math.min(montoFactura, saldoPendiente);
+        if (Math.abs(montoInvolucrado) < 0.99) continue;
+        if (factura.índice < minIndexInvolucrada) {
+          minIndexInvolucrada = factura.índice;
+        }
+        saldoPendiente -= montoInvolucrado;
+      }
+      if (minIndexInvolucrada !== Infinity) {
+        movimientosFiltrados = movimientosFiltrados.filter((mov) => mov.índice >= minIndexInvolucrada);
+      }
+    }
   }
 
-  // *** NUEVA CONDICIÓN: si se aplicó alguno de los filtros, se elimina el movimiento de Saldo Inicial ***
-  if (saldoCero || desdeHasta) {
+  // Eliminar el movimiento de Saldo Inicial si se aplicó alguno de los filtros
+  if (saldoCero || desdeHasta || facturasInvolucradas) {
     movimientosFiltrados = movimientosFiltrados.filter((mov) => mov.codigo !== 0);
   }
 
@@ -253,7 +285,6 @@ const InformeCliente = ({
       if (saldoPendiente <= 0) break;
       const montoFactura = factura.importe_total;
       const montoInvolucrado = Math.min(montoFactura, saldoPendiente);
-      // *** Nueva condición: si el monto involucrado es menor a 0.99 (saldo residual cercano a 0), se omite la factura ***
       if (Math.abs(montoInvolucrado) < 0.99) continue;
       const porcentaje = (montoInvolucrado / saldoFinal) * 100;
       let diasTranscurridos = 0;
@@ -343,9 +374,29 @@ const InformeCliente = ({
       });
     }
 
-    // *** NUEVA CONDICIÓN: si se aplicó alguno de los filtros, se elimina el movimiento de Saldo Inicial ***
-    if (saldoCero || desdeHasta) {
-      arrayConSaldo = arrayConSaldo.filter((mov) => mov.codigo !== 0);
+    if (facturasInvolucradas) {
+      const saldoFinalComputed = movimientosConSaldoInicial[movimientosConSaldoInicial.length - 1].saldo_parcial;
+      if (saldoFinalComputed > 0) {
+        let saldoPendiente = saldoFinalComputed;
+        const facturas = movimientosConSaldoInicial.filter((mov) =>
+          ['FA','FB','FC','FD','FE'].includes(mov.nombre_comprobante)
+        );
+        const facturasDesc = facturas.sort((a, b) => b.índice - a.índice);
+        let minIndexInvolucrada = Infinity;
+        for (const factura of facturasDesc) {
+          if (saldoPendiente <= 0) break;
+          const montoFactura = factura.importe_total;
+          const montoInvolucrado = Math.min(montoFactura, saldoPendiente);
+          if (Math.abs(montoInvolucrado) < 0.99) continue;
+          if (factura.índice < minIndexInvolucrada) {
+            minIndexInvolucrada = factura.índice;
+          }
+          saldoPendiente -= montoInvolucrado;
+        }
+        if (minIndexInvolucrada !== Infinity) {
+          arrayConSaldo = arrayConSaldo.filter((mov) => mov.índice >= minIndexInvolucrada);
+        }
+      }
     }
 
     // Revertir el orden para que el movimiento con índice 1 quede al final
@@ -361,6 +412,7 @@ const InformeCliente = ({
       saldoFinal,
       filtroSaldoCero: saldoCero,
       filtroDesdeHasta: desdeHasta,
+      filtroFacturasInvolucradas: facturasInvolucradas,
       fechaDesde,
       fechaHasta,
       movimientosFiltrados: movimientosFiltradosReversed,
@@ -448,6 +500,18 @@ const InformeCliente = ({
                 />
                 <label className="form-check-label" htmlFor="desdeHasta">
                   Desde y Hasta
+                </label>
+              </div>
+              <div className="form-check mb-2">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id="facturasInvolucradas"
+                  checked={facturasInvolucradas}
+                  onChange={() => handleCheckboxChange('facturasInvolucradas')}
+                />
+                <label className="form-check-label" htmlFor="facturasInvolucradas">
+                  Facturas involucradas
                 </label>
               </div>
 
@@ -776,7 +840,7 @@ const InformeCliente = ({
               </div>
             ))}
           {/* Mostrar Saldo Inicial al final solo si no se aplicó ningún filtro */}
-          {!(saldoCero || desdeHasta) && (
+          {!(saldoCero || desdeHasta || facturasInvolucradas) && (
             <div className="mb-4">
               <h4 className="text-secondary mb-3">Saldo Inicial</h4>
               <div className="border p-3 rounded">
@@ -799,6 +863,13 @@ const InformeCliente = ({
           )}
         </>
       )}
+
+      {/* Opciones para PDF en pantalla */}
+      <div className="mb-4 no-print">
+        <button className="btn btn-secondary" onClick={handleGenerarPDF}>
+          Generar PDF
+        </button>
+      </div>
     </div>
   );
 };
