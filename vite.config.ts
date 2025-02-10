@@ -5,12 +5,12 @@ import react from '@vitejs/plugin-react-swc'
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 8081,
+    port: 8080,
     proxy: {
-      '/consulta': {
-        target: 'http://1.tcp.sa.ngrok.io:20186', // Asegúrate de que esta URL sea correcta
+      '/api': {
+        target: 'https://8e5b6d93f9b7.ngrok.app',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/consulta/, '')
+        rewrite: (path) => path.replace(/^\/api/, '')
       }
     }
   }

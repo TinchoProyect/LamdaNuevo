@@ -1,0 +1,33 @@
+[[redirects]]
+  from = "/consulta"
+  to = "http://1.tcp.sa.ngrok.io:20186/consulta"
+  status = 200
+  force = true
+  headers = { Access-Control-Allow-Origin = "https://lamda.netlify.app", Access-Control-Allow-Credentials = "true" }
+
+[[redirects]]
+  from = "/movimientos"
+  to = "http://1.tcp.sa.ngrok.io:20186/movimientos"
+  status = 200
+  force = true
+  headers = { Access-Control-Allow-Origin = "https://lamda.netlify.app", Access-Control-Allow-Credentials = "true" }
+
+[[redirects]]
+  from = "/movimientos_detalles"
+  to = "http://1.tcp.sa.ngrok.io:20186/movimientos_detalles"
+  status = 200
+  force = true
+  headers = { Access-Control-Allow-Origin = "https://lamda.netlify.app", Access-Control-Allow-Credentials = "true" }
+
+[[redirects]]
+  from = "/saldos-iniciales/*"
+  to = "http://1.tcp.sa.ngrok.io:20186/saldos-iniciales/:splat"
+  status = 200
+  force = true
+  headers = { Access-Control-Allow-Origin = "https://lamda.netlify.app", Access-Control-Allow-Credentials = "true" }
+
+# Redirección para el SPA
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
