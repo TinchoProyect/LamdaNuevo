@@ -199,6 +199,11 @@ const InformeCliente = ({
     });
   }
 
+  // *** NUEVA CONDICIÓN: si se aplicó alguno de los filtros, se elimina el movimiento de Saldo Inicial ***
+  if (saldoCero || desdeHasta) {
+    movimientosFiltrados = movimientosFiltrados.filter((mov) => mov.codigo !== 0);
+  }
+
   // Se recalcula el saldo final a partir de los movimientos filtrados
   const saldoFinal =
     movimientosFiltrados.length > 0
@@ -336,6 +341,11 @@ const InformeCliente = ({
         if (fMov > dHasta) return false;
         return true;
       });
+    }
+
+    // *** NUEVA CONDICIÓN: si se aplicó alguno de los filtros, se elimina el movimiento de Saldo Inicial ***
+    if (saldoCero || desdeHasta) {
+      arrayConSaldo = arrayConSaldo.filter((mov) => mov.codigo !== 0);
     }
 
     // Revertir el orden para que el movimiento con índice 1 quede al final
@@ -765,26 +775,28 @@ const InformeCliente = ({
                 })}
               </div>
             ))}
-          {/* Mostrar Saldo Inicial al final */}
-          <div className="mb-4">
-            <h4 className="text-secondary mb-3">Saldo Inicial</h4>
-            <div className="border p-3 rounded">
-              <div className="justify-content-between d-flex">
-                <h5>
-                  Saldo Inicial <span className="text-success">${formatter(saldoInicial)}</span>
-                </h5>
-                <p>
-                  <strong>Fecha:</strong> -
-                </p>
-                <p>
-                  <strong>Índice:</strong> 1
-                </p>
-                <p>
-                  <strong>Saldo Parcial:</strong> ${formatter(saldoInicial)}
-                </p>
+          {/* Mostrar Saldo Inicial al final solo si no se aplicó ningún filtro */}
+          {!(saldoCero || desdeHasta) && (
+            <div className="mb-4">
+              <h4 className="text-secondary mb-3">Saldo Inicial</h4>
+              <div className="border p-3 rounded">
+                <div className="justify-content-between d-flex">
+                  <h5>
+                    Saldo Inicial <span className="text-success">${formatter(saldoInicial)}</span>
+                  </h5>
+                  <p>
+                    <strong>Fecha:</strong> -
+                  </p>
+                  <p>
+                    <strong>Índice:</strong> 1
+                  </p>
+                  <p>
+                    <strong>Saldo Parcial:</strong> ${formatter(saldoInicial)}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </>
       )}
     </div>
