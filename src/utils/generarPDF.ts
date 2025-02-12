@@ -50,11 +50,11 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
     nombreArchivo,
     cliente,
     saldoFinal,
-    filtroSaldoCero,
+    /*filtroSaldoCero,
     filtroDesdeHasta,
     filtroFacturasInvolucradas,
     fechaDesde,
-    fechaHasta,
+    fechaHasta,*/
     movimientosFiltrados,
     detallesPorMovimiento = {},
     analysisGroups = {},
@@ -71,20 +71,30 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
   // Se utiliza el formato local para la cabecera; el nombre del archivo se usará desde la propiedad pasada
   const fechaActual = new Date().toLocaleDateString('es-AR');
 
+  pdf.setFontSize(18);
+  pdf.setTextColor(0, 150, 0);
+  pdf.text('Lamba', 10, 10);
+  pdf.setTextColor(0, 0, 0);
+  pdf.setFontSize(11);
+  pdf.text('Alias: LAMDA.SER.MARTIN', 35, 10);
+
+
   pdf.setFontSize(14);
-  pdf.text('Informe de Movimientos', 10, 15);
+  pdf.text('Informe de Movimientos', 10, 18);
 
   pdf.setFontSize(11);
-  pdf.text(`Fecha de generación: ${fechaActual}`, 10, 23);
+  pdf.text(`Fecha de generación: ${fechaActual}`, 10, 26);
 
-  pdf.text(`Cliente: ${cliente.Nombre} ${cliente.Apellido}`, 10, 29);
-  pdf.text(`N° Cliente: ${String(cliente.Número).padStart(3, '0')}`, 10, 35);
+  pdf.text(`Cliente: ${cliente.Nombre} ${cliente.Apellido}`, 10, 32);
+  pdf.text(`N° Cliente: ${String(cliente.Número).padStart(3, '0')}`, 10, 38);
 
+
+  pdf.setFontSize(14);
   pdf.setTextColor(0, 150, 0);
-  pdf.text(`Saldo Final: $${ajustarValor(saldoFinal)}`, 10, 41);
+  pdf.text(`Saldo : $${ajustarValor(saldoFinal)}`, 10, 44);
   pdf.setTextColor(0, 0, 0);
 
-  let filtroTexto = 'Sin filtros especiales';
+  /*let filtroTexto = 'Sin filtros especiales';
   if (filtroSaldoCero) {
     filtroTexto = 'Desde Saldo Cero';
   } else if (filtroDesdeHasta) {
@@ -92,10 +102,12 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
   } else if (filtroFacturasInvolucradas) {
     filtroTexto = 'Facturas involucradas';
   }
-  pdf.text(`Filtro aplicado: ${filtroTexto}`, 10, 47);
+  pdf.text(`Filtro aplicado: ${filtroTexto}`, 10, 47);*/
   
+  pdf.setFontSize(11);
+  pdf.text('Análisis de Saldo', 15, 54);
 
-  let currentY = 55;
+  let currentY = 56;
   const colorsExist = orderColors.length > 0 && Object.keys(analysisGroups).length > 0;
 
   if (colorsExist) {
@@ -138,9 +150,12 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
         }
       },
     });
-
+    
     currentY = (pdf as any).lastAutoTable.finalY + 10;
-  }
+  } 
+
+  pdf.setFontSize(11);
+  pdf.text('Movimientos', 15, (pdf as any).lastAutoTable.finalY + 8);
 
   const rows = movimientosFiltrados.map((mov) => {
     const fechaMov = mov.fecha
@@ -160,11 +175,8 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
 
     
     
-    return {
-
-
-      
-      indice: mov.índice || '-',
+    return {  
+     // indice: mov.índice || '-',
       fecha: fechaMov,
       comprobante: mov.nombre_comprobante,
       importe: `$${ajustarValor(mov.importe_total)}`,
@@ -177,7 +189,7 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
   });
 
   const columns = [
-    { header: 'Índice', dataKey: 'indice' },
+    //{ header: 'Índice', dataKey: 'indice' },
     { header: 'Fecha', dataKey: 'fecha' },
     { header: 'Comprobante', dataKey: 'comprobante' },
     { header: 'Importe', dataKey: 'importe' },
