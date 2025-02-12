@@ -2,7 +2,7 @@
 @media print {
     @page {
         size: A4 portrait; /* Orientación vertical */
-        margin: 5mm 8mm; /* Márgenes reducidos */
+        margin: 5mm; /* Márgenes reducidos: 5mm en todos los lados */
     }
 
     body {
@@ -21,6 +21,7 @@
         padding: 0;
         margin: 0 auto;
         width: 100%;
+        max-width: 200mm; /* Ancho máximo acorde al tamaño útil de A4 (210mm - 2x5mm) */
     }
 
     /* Evita que el encabezado y la sección de análisis se dividan entre páginas */
@@ -86,12 +87,12 @@
     .table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: -8px !important; /* Se elimina el espacio entre encabezado y tabla */
+        margin-top: 0 !important; /* Se elimina el margen negativo para evitar compresión */
     }
 
     .table th,
     .table td {
-        padding: 1px;
+        padding: 2px; /* Se incrementa ligeramente el padding para mejorar la legibilidad */
         font-size: 0.7rem;
         page-break-inside: avoid;
         text-align: center;
@@ -105,8 +106,8 @@
     }
 
     .table td {
-        padding-top: 1px;
-        padding-bottom: 1px;
+        padding-top: 2px;
+        padding-bottom: 2px;
     }
 
     /* Eliminar márgenes innecesarios de clases de Bootstrap */
