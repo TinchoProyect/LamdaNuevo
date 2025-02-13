@@ -50,11 +50,7 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
     nombreArchivo,
     cliente,
     saldoFinal,
-    /*filtroSaldoCero,
-    filtroDesdeHasta,
-    filtroFacturasInvolucradas,
-    fechaDesde,
-    fechaHasta,*/
+
     movimientosFiltrados,
     detallesPorMovimiento = {},
     analysisGroups = {},
@@ -94,15 +90,7 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
   pdf.text(`Saldo : $${ajustarValor(saldoFinal)}`, 10, 44);
   pdf.setTextColor(0, 0, 0);
 
-  /*let filtroTexto = 'Sin filtros especiales';
-  if (filtroSaldoCero) {
-    filtroTexto = 'Desde Saldo Cero';
-  } else if (filtroDesdeHasta) {
-    filtroTexto = `Desde ${fechaDesde} Hasta ${fechaHasta}`;
-  } else if (filtroFacturasInvolucradas) {
-    filtroTexto = 'Facturas involucradas';
-  }
-  pdf.text(`Filtro aplicado: ${filtroTexto}`, 10, 47);*/
+ 
   
   pdf.setFontSize(11);
   pdf.text('Análisis de Saldo', 15, 54);
@@ -163,14 +151,7 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
       : '-';
     let detalleStr = '';
     const dets = detallesPorMovimiento[mov.codigo];
-/*if (dets && dets.length > 0) {
-      detalleStr = dets
-        .map(
-          (d) =>
-            `${d.Articulo_Detalle} - ${d.Descripcion_Detalle} (x${d.Cantidad_Detalle})`
-        )
-        .join('\n');
-    }*/
+
         if (dets && dets.length > 0) {
           detalleStr = dets
             .filter(d => d.Articulo_Detalle && d.Descripcion_Detalle && d.Cantidad_Detalle) // Filtra los elementos vacíos o nulos
@@ -180,21 +161,22 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
           // Si después del filtro no queda nada, evitamos asignar un string vacío innecesario
           if (!detalleStr) detalleStr = '---';
         }
-        
 
-    
-    
+        // Verifica si el comprobante empieza con "F"
+    const esFactura = mov.nombre_comprobante?.startsWith('F');
+
     return {  
-     // indice: mov.índice || '-',
       fecha: fechaMov,
-      comprobante: mov.nombre_comprobante,
-      importe: `$${ajustarValor(mov.importe_total)}`,
-      saldoParcial:
-        mov.saldo_parcial !== undefined
-          ? `$${ajustarValor(mov.saldo_parcial)}`
-          : '-',
+      comprobante: { text: mov.nombre_comprobante, bold: esFactura },
+      importe: { text: `$${ajustarValor(mov.importe_total)}`, bold: esFactura },
+      saldoParcial: { 
+          text: mov.saldo_parcial !== undefined ? `$${ajustarValor(mov.saldo_parcial)}` : '-', 
+          bold: esFactura 
+      },
       detalles: detalleStr,
-    };
+  };
+    
+
   });
 
   const columns = [
@@ -209,8 +191,13 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
   autoTable(pdf, {
     startY: currentY,
     head: [columns.map((c) => c.header)],
-    body: rows.map((r) => Object.values(r)),
-   
+    body: rows.map((r) => [
+      r.fecha,
+      { content: r.comprobante.text, styles: r.comprobante.bold ? { fontStyle: 'bold' } : {} },
+      { content: r.importe.text, styles: r.importe.bold ? { fontStyle: 'bold' } : {} },
+      { content: r.saldoParcial.text, styles: r.saldoParcial.bold ? { fontStyle: 'bold' } : {} },
+      r.detalles,
+    ]), 
     theme: 'grid',
     styles: { fontSize: 9, cellPadding: 3 },
     headStyles: { fillColor: [22, 160, 133] },
