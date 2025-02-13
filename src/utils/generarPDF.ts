@@ -163,15 +163,24 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
       : '-';
     let detalleStr = '';
     const dets = detallesPorMovimiento[mov.codigo];
-    if (dets && dets.length > 0) {
+/*if (dets && dets.length > 0) {
       detalleStr = dets
         .map(
           (d) =>
             `${d.Articulo_Detalle} - ${d.Descripcion_Detalle} (x${d.Cantidad_Detalle})`
         )
         .join('\n');
-    }
-    
+    }*/
+        if (dets && dets.length > 0) {
+          detalleStr = dets
+            .filter(d => d.Articulo_Detalle && d.Descripcion_Detalle && d.Cantidad_Detalle) // Filtra los elementos vacíos o nulos
+            .map(d => `${d.Articulo_Detalle} - ${d.Descripcion_Detalle} (x${d.Cantidad_Detalle})`)
+            .join('\n');
+        
+          // Si después del filtro no queda nada, evitamos asignar un string vacío innecesario
+          if (!detalleStr) detalleStr = '---';
+        }
+        
 
     
     
