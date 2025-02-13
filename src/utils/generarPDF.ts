@@ -69,7 +69,7 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
 
   pdf.setFontSize(18);
   pdf.setTextColor(0, 150, 0);
-  pdf.text('Lamba', 10, 10);
+  pdf.text('Lamda', 10, 10);
   pdf.setTextColor(0, 0, 0);
   pdf.setFontSize(11);
   pdf.text('Alias: LAMDA.SER.MARTIN', 35, 10);
