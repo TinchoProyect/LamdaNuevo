@@ -307,15 +307,15 @@ const BusquedaCliente = () => {
         }
         let color = '#f0f0f0';
         if (diasTranscurridos <= 7) {
-          color = '#d4edda';
+          color = '#2ecc71';
         } else if (diasTranscurridos >= 8 && diasTranscurridos <= 14) {
-          color = '#fff3cd';
+          color = '#f1c40f';
         } else if (diasTranscurridos >= 15 && diasTranscurridos <= 21) {
-          color = '#ffe5b4';
+          color = '#f39c12';
         } else if (diasTranscurridos >= 22 && diasTranscurridos <= 28) {
-          color = '#f8d7da';
+          color = '#d35400';
         } else if (diasTranscurridos >= 29) {
-          color = '#800020';
+          color = '#c0392b';
         }
         facturasInvolucradasMap[factura.codigo] = {
           montoInvolucrado,

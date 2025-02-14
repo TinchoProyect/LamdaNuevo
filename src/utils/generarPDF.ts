@@ -271,72 +271,64 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
     }
 
     // Verificar si el comprobante es una factura (comienza con "F").
-    const esFactura = mov.nombre_comprobante?.startsWith('F');
+    const esFactura = mov.nombre_comprobante?.startsWith('F'); // ✅ Declarado dentro del `map`
+    let facturaColor: [number, number, number] = [255, 255, 255]; // Fondo blanco por defecto
+    let isBold = false; // ✅ Para negrita
 
-    let facturaColor: [number, number, number] = [0, 0, 0]; // Negro por defecto si no se encuentra color
+    // SOLO SE APLICA COLOR A FACTURAS IMPAGAS DESPUÉS DEL ÚLTIMO SALDO CERO
+    if (
+        esFactura &&
+        mov.saldo_parcial > 0 &&
+        fechaMov instanceof Date &&
+        fechaUltimoSaldoCero instanceof Date &&
+        fechaMov.getTime() > fechaUltimoSaldoCero.getTime()
+    ) {
+        const fechaHoy = new Date();
+        const diferenciaTiempo = fechaHoy.getTime() - fechaMov.getTime();
+        const diasAntiguedad = Math.floor(diferenciaTiempo / (1000 * 60 * 60 * 24));
 
-      // SOLO SE APLICA COLOR A FACTURAS IMPAGAS POSTERIORES AL ÚLTIMO SALDO CERO
+        for (const color of orderColors) {
+            const estadoTexto = estadoMapping[color];
 
-     if (
-      esFactura &&
-      mov.saldo_parcial > 0 &&
-      fechaMov instanceof Date &&
-      fechaUltimoSaldoCero instanceof Date &&
-      fechaMov.getTime() > fechaUltimoSaldoCero.getTime()
-  ) {
-      const fechaHoy = new Date();
-      const diferenciaTiempo = fechaHoy.getTime() - fechaMov.getTime();
-      const diasAntiguedad = Math.floor(diferenciaTiempo / (1000 * 60 * 60 * 24));
+            const match = estadoTexto.match(/(\d+)-(\d+)/);
+            if (match) {
+                const minDias = parseInt(match[1], 10);
+                const maxDias = parseInt(match[2], 10);
 
-      for (const color of orderColors) {
-          const estadoTexto = estadoMapping[color];
+                if (diasAntiguedad >= minDias && diasAntiguedad <= maxDias) {
+                    facturaColor = hexToRgb(color);
+                    break;
+                }
+            } else if (estadoTexto.includes("Mas de")) {
+                const minDias = parseInt(estadoTexto.match(/(\d+)/)?.[1] ?? "0", 10);
+                if (diasAntiguedad > minDias) {
+                    facturaColor = hexToRgb(color);
+                    break;
+                }
+            }
+        }
+        isBold = true; // ✅ Se marca como negrita solo si tiene fondo de color
+    }
 
-          const match = estadoTexto.match(/(\d+)-(\d+)/);
-          if (match) {
-              const minDias = parseInt(match[1], 10);
-              const maxDias = parseInt(match[2], 10);
+    const bgColor = esFactura ? facturaColor : [255, 255, 255]; // ✅ Fondo solo si es factura
 
-              if (diasAntiguedad >= minDias && diasAntiguedad <= maxDias) {
-                  facturaColor = hexToRgb(color);
-                  break;
-              }
-          } else if (estadoTexto.includes("Mas de")) {
-              const minDias = parseInt(estadoTexto.match(/(\d+)/)?.[1] ?? "0", 10);
-              if (diasAntiguedad > minDias) {
-                  facturaColor = hexToRgb(color);
-                  break;
-              }
-          }
-      }
-  }
-
-  return {
-      fecha: fechaMov ? fechaMov.toLocaleDateString('es-AR') : '-',
-      comprobante: { text: mov.nombre_comprobante, textColor: facturaColor },
-      importe: { text: `$${ajustarValor(mov.importe_total)}`, textColor: facturaColor },
-      saldoParcial: { text: `$${ajustarValor(mov.saldo_parcial)}`, textColor: facturaColor },
-      detalles: detalleStr,
-  };
+    return {
+        fecha: fechaMov ? fechaMov.toLocaleDateString('es-AR') : '-',
+        comprobante: { text: mov.nombre_comprobante, bgColor, isBold }, // ✅ Se guarda negrita
+        importe: { text: `$${ajustarValor(mov.importe_total)}`, bgColor, isBold },
+        saldoParcial: { text: `$${ajustarValor(mov.saldo_parcial)}`, bgColor, isBold },
+        detalles: detalleStr,
+    };
 });
 
-
-  const columns = [
-    { header: 'Fecha', dataKey: 'fecha' },
-    { header: 'Comprobante', dataKey: 'comprobante' },
-    { header: 'Importe', dataKey: 'importe' },
-    { header: 'Saldo Parcial', dataKey: 'saldoParcial' },
-    { header: 'Detalles', dataKey: 'detalles' },
-  ];
-
-  // Generar la tabla de movimientos.
-  autoTable(pdf, {
+autoTable(pdf, {
     startY: currentY,
-    head: [columns.map((c) => c.header)],
+    head: [['Fecha', 'Comprobante', 'Importe', 'Saldo Parcial', 'Detalles']],
     body: rows.map((r) => [
         r.fecha,
-        { content: r.comprobante.text },
-        { content: r.importe.text },
-        { content: r.saldoParcial.text },
+        { content: r.comprobante.text, styles: { fontStyle: r.comprobante.isBold ? 'bold' : 'normal' } }, // ✅ Aplicar negrita
+        { content: r.importe.text, styles: { fontStyle: r.importe.isBold ? 'bold' : 'normal' } }, // ✅ Aplicar negrita
+        { content: r.saldoParcial.text, styles: { fontStyle: r.saldoParcial.isBold ? 'bold' : 'normal' } }, // ✅ Aplicar negrita
         r.detalles,
     ]),
     theme: 'grid',
@@ -348,16 +340,20 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
 
             if (colIndex === 1 || colIndex === 2 || colIndex === 3) {
                 const rowData = rows[rowIndex];
-                if (rowData && rowData.comprobante.textColor) {
-                    const colorRGB = rowData.comprobante.textColor;
-                    console.log(`🎨 Aplicando color ${colorRGB} en fila ${rowIndex}, columna ${colIndex}`);
-                    pdf.setTextColor(colorRGB[0], colorRGB[1], colorRGB[2]);
+                if (rowData && rowData.comprobante.bgColor) {
+                    const colorRGB = rowData.comprobante.bgColor;
+                    console.log(`🟩 Aplicando fondo de color ${colorRGB} en fila ${rowIndex}, columna ${colIndex}`);
+                    pdf.setFillColor(colorRGB[0], colorRGB[1], colorRGB[2]);
+                    pdf.rect(
+                        data.cell.x,
+                        data.cell.y,
+                        data.cell.width,
+                        data.cell.height,
+                        'F'
+                    );
                 }
             }
         }
-    },
-    didDrawCell: function () {
-        pdf.setTextColor(0, 0, 0); // Restablecer el color después de cada celda
     },
 });
 

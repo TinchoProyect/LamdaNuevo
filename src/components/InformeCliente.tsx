@@ -296,17 +296,17 @@ const InformeCliente = ({
         );
       }
       let color = '#f0f0f0';
-      if (diasTranscurridos <= 7) {
-        color = '#d4edda';
-      } else if (diasTranscurridos >= 8 && diasTranscurridos <= 14) {
-        color = '#fff3cd';
-      } else if (diasTranscurridos >= 15 && diasTranscurridos <= 21) {
-        color = '#ffe5b4';
-      } else if (diasTranscurridos >= 22 && diasTranscurridos <= 28) {
-        color = '#f8d7da';
-      } else if (diasTranscurridos >= 29) {
-        color = '#800020';
-      }
+        if (diasTranscurridos <= 7) {
+          color = '#d4edda';
+        } else if (diasTranscurridos >= 8 && diasTranscurridos <= 14) {
+          color = '#fff3cd';
+        } else if (diasTranscurridos >= 15 && diasTranscurridos <= 21) {
+          color = '#ffe5b4';
+        } else if (diasTranscurridos >= 22 && diasTranscurridos <= 28) {
+          color = '#f8d7da';
+        } else if (diasTranscurridos >= 29) {
+          color = '#800020';
+        }
       facturasInvolucradasMap[factura.codigo] = {
         montoInvolucrado,
         porcentaje,
