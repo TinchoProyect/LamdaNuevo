@@ -24,45 +24,6 @@ function hexToRgb(hex: string): [number, number, number] {
       ? [parseInt(match[1], 16), parseInt(match[2], 16), parseInt(match[3], 16)]
       : [0, 0, 0]; // Color negro por defecto si el formato es incorrecto.
 }
-/**
- * Encuentra el último movimiento con saldo parcial en 0 y obtiene su fecha.
- * @param movimientos - Lista de movimientos.
- * @returns Fecha del último saldo en 0 o `null` si no hay.
- */
-function encontrarUltimoSaldoCero(movimientos: Movimiento[]): Date | undefined {
-  for (let i = movimientos.length - 1; i >= 0; i--) {
-      const fecha = movimientos[i].fecha ?? ""; // Si es null, asignar cadena vacía
-      if (movimientos[i].saldo_parcial === 0 && fecha.trim() !== "") {
-          const fechaValida = Date.parse(fecha);
-          if (!isNaN(fechaValida)) {
-              return new Date(fechaValida); // Convertimos solo si es una fecha válida
-          }
-      }
-  }
-  return undefined; // Si no hay saldo 0, devuelve `undefined`
-}
-
-function encontrarUltimaFechaSaldoCero(movimientos: Movimiento[]): Date | undefined {
-  // Ordenamos los movimientos por fecha descendente (de más reciente a más antiguo)
-  const movimientosOrdenados = [...movimientos].sort((a, b) => {
-      const fechaA = a.fecha ? new Date(a.fecha).getTime() : 0;
-      const fechaB = b.fecha ? new Date(b.fecha).getTime() : 0;
-      return fechaB - fechaA; // Orden descendente
-  });
-
-  // Buscamos el primer saldo 0 en este orden
-  for (const mov of movimientosOrdenados) {
-      const fecha = mov.fecha ?? ""; // Si es null, asignar cadena vacía
-      if (mov.saldo_parcial === 0 && fecha.trim() !== "") {
-          const fechaValida = Date.parse(fecha);
-          if (!isNaN(fechaValida)) {
-              return new Date(fechaValida); // Retorna la última fecha encontrada
-          }
-      }
-  }
-
-  return undefined; // Si no hay saldo 0, devuelve `undefined`
-}
 
 function ajustarValor(valor: number): string {
   if (Math.abs(valor) <= 0.99) {
@@ -234,16 +195,7 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
     (pdf as any).lastAutoTable ? (pdf as any).lastAutoTable.finalY + 8 : currentY
   );
 
-  // ENCONTRAR EL ÚLTIMO SALDO PARCIAL EN 0
-  const ultimoSaldoCeroIndex = encontrarUltimoSaldoCero(movimientosFiltrados);
-  console.log(`🔍 Último saldo parcial en 0 encontrado en índice: ${ultimoSaldoCeroIndex}`);
- /* const fechaUltimoSaldoCero = encontrarUltimoSaldoCero(movimientosFiltrados);
-  console.log(`🔍 Último saldo parcial en 0 encontrado en fecha: ${fechaUltimoSaldoCero}`);*/
-  
-  const fechaUltimoSaldoCero = encontrarUltimaFechaSaldoCero(movimientosFiltrados);
-  console.log(`🔍 Última fecha con saldo parcial 0: ${fechaUltimoSaldoCero}`);
-  
-  
+ 
   
    
    // **Cálculo de Facturas Involucradas en el Análisis de Saldo**
