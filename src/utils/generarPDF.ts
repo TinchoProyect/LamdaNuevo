@@ -243,119 +243,108 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
   const fechaUltimoSaldoCero = encontrarUltimaFechaSaldoCero(movimientosFiltrados);
   console.log(`🔍 Última fecha con saldo parcial 0: ${fechaUltimoSaldoCero}`);
   
-  const rows = movimientosFiltrados.map((mov) => {
-      let fechaMov: Date | undefined;
-      const fecha = mov.fecha ?? ""; // Si es null, asignar cadena vacía
-      if (fecha.trim() !== "") {
-          const fechaValida = Date.parse(fecha);
-          if (!isNaN(fechaValida)) {
-              fechaMov = new Date(fechaValida); // Convertimos solo si es una fecha válida
-          }
-      }
   
-    // Construir el detalle a partir de los detalles asociados (si existen).
-    let detalleStr = '';
-    const dets = detallesPorMovimiento[mov.codigo];
-    if (dets && dets.length > 0) {
-      detalleStr = dets
-        .filter(
-          (d) =>
-            d.Articulo_Detalle && d.Descripcion_Detalle && d.Cantidad_Detalle
-        )
-        .map(
-          (d) =>
-            `${d.Articulo_Detalle} - ${d.Descripcion_Detalle} (x${d.Cantidad_Detalle})`
-        )
-        .join('\n');
-      if (!detalleStr) detalleStr = '---';
-    }
+  
+   
+   // **Cálculo de Facturas Involucradas en el Análisis de Saldo**
+   const facturasInvolucradasMap: Record<
+   number,
+   { montoInvolucrado: number; porcentaje: number; diasTranscurridos: number; color: string }
+ > = {};
 
-    // Verificar si el comprobante es una factura (comienza con "F").
-    const esFactura = mov.nombre_comprobante?.startsWith('F'); // ✅ Declarado dentro del `map`
-    let facturaColor: [number, number, number] = [255, 255, 255]; // Fondo blanco por defecto
-    let isBold = false; // ✅ Para negrita
+ if (saldoFinal > 0) {
+   let saldoPendiente = saldoFinal;
+   const facturas = movimientosFiltrados.filter((mov) =>
+     ['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante)
+   );
 
-    // SOLO SE APLICA COLOR A FACTURAS IMPAGAS DESPUÉS DEL ÚLTIMO SALDO CERO
-    if (
-        esFactura &&
-        mov.saldo_parcial > 0 &&
-        fechaMov instanceof Date &&
-        fechaUltimoSaldoCero instanceof Date &&
-        fechaMov.getTime() > fechaUltimoSaldoCero.getTime()
-    ) {
-        const fechaHoy = new Date();
-        const diferenciaTiempo = fechaHoy.getTime() - fechaMov.getTime();
-        const diasAntiguedad = Math.floor(diferenciaTiempo / (1000 * 60 * 60 * 24));
+   const facturasDesc = facturas.sort((a, b) => b.fecha!.localeCompare(a.fecha!));
 
-        for (const color of orderColors) {
-            const estadoTexto = estadoMapping[color];
+   for (const factura of facturasDesc) {
+     if (saldoPendiente <= 0) break;
+     const montoFactura = factura.importe_total;
+     const montoInvolucrado = Math.min(montoFactura, saldoPendiente);
+     if (Math.abs(montoInvolucrado) < 0.99) continue;
 
-            const match = estadoTexto.match(/(\d+)-(\d+)/);
-            if (match) {
-                const minDias = parseInt(match[1], 10);
-                const maxDias = parseInt(match[2], 10);
+     const porcentaje = (montoInvolucrado / saldoFinal) * 100;
+     let diasTranscurridos = 0;
+     if (factura.fecha) {
+       const fechaFactura = new Date(factura.fecha);
+       const hoy = new Date();
+       diasTranscurridos = Math.floor((hoy.getTime() - fechaFactura.getTime()) / (1000 * 60 * 60 * 24));
+     }
 
-                if (diasAntiguedad >= minDias && diasAntiguedad <= maxDias) {
-                    facturaColor = hexToRgb(color);
-                    break;
-                }
-            } else if (estadoTexto.includes("Mas de")) {
-                const minDias = parseInt(estadoTexto.match(/(\d+)/)?.[1] ?? "0", 10);
-                if (diasAntiguedad > minDias) {
-                    facturaColor = hexToRgb(color);
-                    break;
-                }
-            }
-        }
-        isBold = true; // ✅ Se marca como negrita solo si tiene fondo de color
-    }
+     let color = '#f0f0f0';
+     if (diasTranscurridos <= 7) color = '#d4edda';
+     else if (diasTranscurridos >= 8 && diasTranscurridos <= 14) color = '#fff3cd';
+     else if (diasTranscurridos >= 15 && diasTranscurridos <= 21) color = '#ffe5b4';
+     else if (diasTranscurridos >= 22 && diasTranscurridos <= 28) color = '#f8d7da';
+     else if (diasTranscurridos >= 29) color = '#800020';
 
-    const bgColor = esFactura ? facturaColor : [255, 255, 255]; // ✅ Fondo solo si es factura
+     facturasInvolucradasMap[factura.codigo] = { montoInvolucrado, porcentaje, diasTranscurridos, color };
+     saldoPendiente -= montoInvolucrado;
+   }
+ }
 
-    return {
-        fecha: fechaMov ? fechaMov.toLocaleDateString('es-AR') : '-',
-        comprobante: { text: mov.nombre_comprobante, bgColor, isBold }, // ✅ Se guarda negrita
-        importe: { text: `$${ajustarValor(mov.importe_total)}`, bgColor, isBold },
-        saldoParcial: { text: `$${ajustarValor(mov.saldo_parcial)}`, bgColor, isBold },
-        detalles: detalleStr,
-    };
-});
+ // **Generación de Tabla de Movimientos**
+ const rows = movimientosFiltrados.map((mov) => {
+   const esFactura = ['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante);
+   const colorHex = facturasInvolucradasMap[mov.codigo]?.color || '#FFFFFF';
+   const bgColor = hexToRgb(colorHex);
+   const isBold = !!facturasInvolucradasMap[mov.codigo];
+ // Construir el detalle a partir de los detalles asociados (si existen).
+ let detalleStr = '';
+ const dets = detallesPorMovimiento[mov.codigo];
+ if (dets && dets.length > 0) {
+   detalleStr = dets
+     .filter(
+       (d) =>
+         d.Articulo_Detalle && d.Descripcion_Detalle && d.Cantidad_Detalle
+     )
+     .map(
+       (d) =>
+         `${d.Articulo_Detalle} - ${d.Descripcion_Detalle} (x${d.Cantidad_Detalle})`
+     )
+     .join('\n');
+   if (!detalleStr) detalleStr = '---';
+ }
 
-autoTable(pdf, {
-    startY: currentY,
-    head: [['Fecha', 'Comprobante', 'Importe', 'Saldo Parcial', 'Detalles']],
-    body: rows.map((r) => [
-        r.fecha,
-        { content: r.comprobante.text, styles: { fontStyle: r.comprobante.isBold ? 'bold' : 'normal' } }, // ✅ Aplicar negrita
-        { content: r.importe.text, styles: { fontStyle: r.importe.isBold ? 'bold' : 'normal' } }, // ✅ Aplicar negrita
-        { content: r.saldoParcial.text, styles: { fontStyle: r.saldoParcial.isBold ? 'bold' : 'normal' } }, // ✅ Aplicar negrita
-        r.detalles,
-    ]),
-    theme: 'grid',
-    styles: { fontSize: 9, cellPadding: 3 },
-    willDrawCell: function (data) {
-        if (data.section === 'body') {
-            const rowIndex = data.row.index;
-            const colIndex = data.column.index;
 
-            if (colIndex === 1 || colIndex === 2 || colIndex === 3) {
-                const rowData = rows[rowIndex];
-                if (rowData && rowData.comprobante.bgColor) {
-                    const colorRGB = rowData.comprobante.bgColor;
-                    console.log(`🟩 Aplicando fondo de color ${colorRGB} en fila ${rowIndex}, columna ${colIndex}`);
-                    pdf.setFillColor(colorRGB[0], colorRGB[1], colorRGB[2]);
-                    pdf.rect(
-                        data.cell.x,
-                        data.cell.y,
-                        data.cell.width,
-                        data.cell.height,
-                        'F'
-                    );
-                }
-            }
-        }
-    },
-});
+  
+
+   return {
+     fecha: mov.fecha ? new Date(mov.fecha).toLocaleDateString('es-AR') : '-',
+     comprobante: { text: mov.nombre_comprobante, bgColor, isBold },
+     importe: { text: `$${ajustarValor(mov.importe_total)}`, bgColor, isBold },
+     saldoParcial: { text: `$${ajustarValor(mov.saldo_parcial)}`, bgColor, isBold },
+     detalles: detalleStr,
+   };
+ });
+
+ autoTable(pdf, {
+   startY: currentY,
+   head: [['Fecha', 'Comprobante', 'Importe', 'Saldo Parcial', 'Detalles']],
+   body: rows.map((r) => [
+     r.fecha,
+     { content: r.comprobante.text, styles: { fontStyle: r.comprobante.isBold ? 'bold' : 'normal' } },
+     { content: r.importe.text, styles: { fontStyle: r.importe.isBold ? 'bold' : 'normal' } },
+     { content: r.saldoParcial.text, styles: { fontStyle: r.saldoParcial.isBold ? 'bold' : 'normal' } },
+     r.detalles,
+   ]),
+   theme: 'grid',
+   styles: { fontSize: 9, cellPadding: 3 },
+   willDrawCell: function (data) {
+     if (data.section === 'body' && [1, 2, 3].includes(data.column.index)) {
+       const rowIndex = data.row.index;
+       const rowData = rows[rowIndex];
+       if (rowData && rowData.comprobante.bgColor) {
+         const colorRGB = rowData.comprobante.bgColor;
+         pdf.setFillColor(colorRGB[0], colorRGB[1], colorRGB[2]);
+         pdf.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+       }
+     }
+   },
+ });
 
 
 
@@ -366,5 +355,3 @@ autoTable(pdf, {
       : `Informe_Cliente_${cliente.Número}_${fechaActual}.pdf`
   );
 }
-
-
