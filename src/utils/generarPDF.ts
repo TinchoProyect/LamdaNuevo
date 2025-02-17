@@ -126,9 +126,7 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
   pdf.setTextColor(0, 0, 0);
 
   // Sección: Análisis de Saldo.
-  pdf.setFontSize(11);
-  pdf.text('Análisis de Saldo', 15, 54);
-
+ 
   let currentY = 56;
   const colorsExist = orderColors.length > 0 && Object.keys(analysisGroups).length > 0;
   
@@ -149,9 +147,11 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
           estado: estadoMapping[color] || '',
         };
       });
-
+      pdf.setFontSize(11);
+      pdf.text('Análisis de Saldo', 15, 54);
+      
     autoTable(pdf, {
-      startY: currentY,
+      startY: currentY + 1,
       head: [['Color', 'Monto', 'Porcentaje', 'Estado']],
       body: tableBody.map((item) => [
         '', // Se dibuja el color en willDrawCell.
@@ -184,7 +184,7 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
   console.log("Orden de colores:", orderColors);
 
    
-
+ 
 
   // Sección: Movimientos.
   // Si la tabla de análisis de saldo se generó, se usa su finalY para ubicar la tabla.
@@ -192,7 +192,7 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
   pdf.text(
     'Movimientos',
     15,
-    (pdf as any).lastAutoTable ? (pdf as any).lastAutoTable.finalY + 8 : currentY
+    (pdf as any).lastAutoTable ? (pdf as any).lastAutoTable.finalY + 8  : currentY ,
   );
 
  
@@ -274,7 +274,7 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
  });
 
  autoTable(pdf, {
-   startY: currentY,
+   startY: currentY + 2,
    head: [['Fecha', 'Comprobante', 'Importe', 'Saldo Parcial', 'Detalles']],
    body: rows.map((r) => [
      r.fecha,
