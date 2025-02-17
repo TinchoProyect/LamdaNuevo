@@ -1,7 +1,8 @@
 import { Movimiento } from '../types/movimiento';
 
-  const calcularSaldoTotal = (saldoInicial: number, movimientos: Movimiento[]): number => {
-  let saldoAcumulado = saldoInicial || 0;
+  const calcularSaldoTotal = (saldoInicial: number | null, movimientos: Movimiento[]): number => {
+     // Establecer un valor por defecto si saldoInicial es null o undefined
+  let saldoAcumulado = saldoInicial ?? 0;
 
  
   

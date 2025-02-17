@@ -32,7 +32,8 @@ const BusquedaCliente = () => {
 
   // Estado para guardar el saldo inicial obtenido desde la base de datos
   const [saldoInicialDB, setSaldoInicialDB] = useState<number>(0);
-
+  
+   
   // Estados de filtros:
   // Se precargan las fechas:
   // - "fechaDesde": se inicializa con la fecha actual.
@@ -71,6 +72,15 @@ const BusquedaCliente = () => {
   const limitedClientes = filteredClientes.slice(0, MAX_RESULTS);
 
   const handleSelectCliente = async (cliente: Cliente) => {
+
+     // MOD: Limpiamos estados para evitar arrastrar datos del cliente anterior.
+     setMovimientosCliente([]);
+     setMovDetallesCliente([]);
+     setSaldoInicialDB(0);
+   //  setMostrarGenerarPDF(false); // Reiniciamos las opciones de PDF
+     setSelectedCliente(null);
+
+     //
     setSelectedCliente(cliente);
     setSearchTerm('');
     setGenerarPDFEnabled(true);
@@ -84,7 +94,8 @@ const BusquedaCliente = () => {
     try {
       // 1) Obtener saldo inicial y movimientos
       const saldoInicial = await fetchSaldo(cliente.Número); // Devuelve un número
-      setSaldoInicialDB(saldoInicial); // Guardamos el saldo inicial
+      // Si saldoInicial es null, se asigna 0 para evitar arrastrar datos del cliente anterior
+      setSaldoInicialDB(saldoInicial ?? 0); // Guardamos el saldo inicial
       const movimientos = await fetchMovimientos(cliente.Número); // Arreglo de movimientos
 
       // Guardarlos en estado
@@ -111,7 +122,8 @@ const BusquedaCliente = () => {
     }
   };
 
-  const handleVerMovimientos = () => {
+  const handleVerMovimientos = () => { 
+   
     if (selectedCliente) {
       // Al pasar a InformeCliente se envían también los valores de filtro seleccionados
       setShowInforme(true);
@@ -307,15 +319,15 @@ const BusquedaCliente = () => {
         }
         let color = '#f0f0f0';
         if (diasTranscurridos <= 7) {
-          color = '#2ecc71';
+          color = '#d4edda';
         } else if (diasTranscurridos >= 8 && diasTranscurridos <= 14) {
-          color = '#f1c40f';
+          color = '#fff3cd';
         } else if (diasTranscurridos >= 15 && diasTranscurridos <= 21) {
-          color = '#f39c12';
+          color = '#ffe5b4';
         } else if (diasTranscurridos >= 22 && diasTranscurridos <= 28) {
-          color = '#d35400';
+          color = '#f8d7da';
         } else if (diasTranscurridos >= 29) {
-          color = '#c0392b';
+          color = '#800020';
         }
         facturasInvolucradasMap[factura.codigo] = {
           montoInvolucrado,
@@ -378,6 +390,8 @@ const BusquedaCliente = () => {
     <div className="container mt-5 pt-5">
       {showInforme ? (
         // Se pasan los valores de filtro seleccionados a InformeCliente mediante props
+        // MOD: Se pasan como props los datos recién obtenidos para que InformeCliente
+        // utilice estos en lugar de la información del contexto.
         <InformeCliente
           onBack={handleBack}
           cliente={selectedCliente}
@@ -386,6 +400,10 @@ const BusquedaCliente = () => {
           initialFiltroFacturasInvolucradas={facturasInvolucradas}
           initialFechaDesde={fechaDesde}
           initialFechaHasta={fechaHasta}
+            // Nuevas props para sobreescribir los datos de contexto
+            movimientosProp={movimientosCliente} // MOD:
+            movDetallesProp={movDetallesCliente}   // MOD:
+            saldoInicialProp={saldoInicialDB}         // MOD:
         />
       ) : (
         <div className="search-container">

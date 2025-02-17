@@ -19,6 +19,10 @@ type InformeClienteProps = {
   initialFiltroFacturasInvolucradas?: boolean;
   initialFechaDesde?: string;
   initialFechaHasta?: string;
+  // MOD: Nuevas props para recibir datos específicos del cliente seleccionado
+  movimientosProp?: Movimiento[];
+  movDetallesProp?: Mov_Detalle[];
+  saldoInicialProp?: number;
 };
 
 const InformeCliente = ({
@@ -29,12 +33,22 @@ const InformeCliente = ({
   initialFiltroFacturasInvolucradas,
   initialFechaDesde,
   initialFechaHasta,
+  movimientosProp,    // MOD:
+  movDetallesProp,    // MOD:
+  saldoInicialProp,   // MOD:
 }: InformeClienteProps) => {
-  const { movDetalles, isLoadingMovDetalles } = useMovimientoDetalles();
-  const { movimientos, isLoadingMov } = useMovimientos();
-  const { saldo, isLoadingSaldo } = useSaldos();
-
-  const isLoading = isLoadingMovDetalles || isLoadingMov || isLoadingSaldo;
+   // MOD: Si se reciben los datos por props, se usan; de lo contrario se obtienen del contexto.
+   const { movDetalles: movDetallesCtx, isLoadingMovDetalles } = useMovimientoDetalles();
+   const { movimientos: movimientosCtx, isLoadingMov } = useMovimientos();
+   const { saldo, isLoadingSaldo } = useSaldos();
+ 
+   const movimientosData: Movimiento[] =
+    movimientosProp !== undefined ? movimientosProp : movimientosCtx;
+  const movDetallesData: Mov_Detalle[] =
+    (movDetallesProp !== undefined && movDetallesProp.length > 0)
+      ? movDetallesProp
+      : movDetallesCtx; // MOD: Se agregó la comprobación de longitud para evitar sobreescribir datos del contexto con arreglo vacío.
+   const isLoading = isLoadingMovDetalles || isLoadingMov || isLoadingSaldo;
 
   // Función para normalizar valores cercanos a 0
   const normalize = (value: number): number => {
@@ -125,12 +139,21 @@ const InformeCliente = ({
   };
 
   // Se obtiene el saldo inicial normalizado
-  const saldoInicial = saldo ? normalize(saldo.Monto) : 0;
+  //const saldoInicial = saldo ? normalize(saldo.Monto) : 0;
 
-  // Ordenar movimientos por fecha (ascendente)
-  const sortedMovimientos = [...movimientos].sort(
-    (a, b) => new Date(a.fecha || '').getTime() - new Date(b.fecha || '').getTime()
-  );
+   // MOD: Si se recibió saldoInicialProp, se usa; sino, se extrae de saldo (del contexto) si existe.
+   const saldoInicial = saldoInicialProp !== undefined
+   ? normalize(saldoInicialProp)
+   : (saldo ? normalize(saldo.Monto) : 0);
+
+ // MOD: Usamos los movimientos recibidos por props (movimientosData) en lugar de los del contexto.
+ const sortedMovimientos = [...movimientosData].sort(
+   (a, b) => new Date(a.fecha || '').getTime() - new Date(b.fecha || '').getTime()
+ );
+
+
+
+
 
   let saldoAcumulado = saldoInicial;
   const movimientosConSaldoParcial = sortedMovimientos.map((mov, index) => {
@@ -242,7 +265,7 @@ const InformeCliente = ({
       ? movimientosFiltrados[movimientosFiltrados.length - 1].saldo_parcial
       : saldoInicial;
 
-  const detallesPorMovimiento = movDetalles.reduce((acc, detalle) => {
+  const detallesPorMovimiento = movDetallesData.reduce((acc, detalle) => {
     const { Codigo_Movimiento } = detalle;
     if (!acc[Codigo_Movimiento]) acc[Codigo_Movimiento] = [];
     acc[Codigo_Movimiento].push(detalle);
