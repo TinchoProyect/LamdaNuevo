@@ -4,6 +4,8 @@ import { Cliente } from '../types/cliente';
 import { Movimiento } from '../types/movimiento';
 import { Mov_Detalle } from '../types/movimiento_detalle';
 
+
+
 /**
  * Formatea un número para que tenga dos decimales.
  * Si el valor absoluto es menor o igual a 0.99, retorna '0.00'.
@@ -82,6 +84,8 @@ interface GenerarInformePDFParams {
  *
  * @param params - Parámetros necesarios para generar el PDF.
  */
+
+
 export function generarInformePDF(params: GenerarInformePDFParams) {
   const {
     nombreArchivo,
