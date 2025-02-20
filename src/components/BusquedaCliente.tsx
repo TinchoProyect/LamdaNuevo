@@ -259,7 +259,7 @@ const BusquedaCliente = () => {
                   </label>
                 </div>
                 {/* Mostrar el filtro "Facturas involucradas" solo si el cliente tiene saldo positivo mayor a 0.99 */}
-                {selectedCliente.saldo && selectedCliente.saldo > 0.99 && (
+                {selectedCliente.saldo !== null && selectedCliente.saldo !== undefined && selectedCliente.saldo > 0.99 && (
                   <div className="form-check">
                     <input
                       type="checkbox"
