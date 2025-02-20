@@ -327,7 +327,9 @@ const InformeCliente = ({
           color = '#ffe5b4';
         } else if (diasTranscurridos >= 22 && diasTranscurridos <= 28) {
           color = '#f8d7da';
-        } else if (diasTranscurridos >= 29) {
+        } else if (diasTranscurridos >= 29 && diasTranscurridos <=90) {
+          color = '#f1948a';
+        }else if (diasTranscurridos >= 91) {
           color = '#800020';
         }
       facturasInvolucradasMap[factura.codigo] = {
@@ -353,12 +355,13 @@ const InformeCliente = ({
     {} as Record<string, { totalMonto: number; totalPercentage: number }>
   );
 
-  const orderColors = ['#d4edda', '#fff3cd', '#ffe5b4', '#f8d7da', '#800020'];
+  const orderColors = ['#d4edda', '#fff3cd', '#ffe5b4', '#f8d7da','#f1948a' ,'#800020'];
   const estadoMapping: Record<string, string> = {
     '#d4edda': '0-7 Días',
     '#fff3cd': '8-14 Días',
     '#ffe5b4': '15-21 Días',
-    '#f8d7da': 'Mas de 28 Días',
+    '#f8d7da': '22-28 Días',
+    '#f1948a': 'Mas de 28 Días',
     '#800020': 'Pendiente Vencida',
   };
 

@@ -235,8 +235,9 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
      else if (diasTranscurridos >= 8 && diasTranscurridos <= 14) color = '#fff3cd';
      else if (diasTranscurridos >= 15 && diasTranscurridos <= 21) color = '#ffe5b4';
      else if (diasTranscurridos >= 22 && diasTranscurridos <= 28) color = '#f8d7da';
-     else if (diasTranscurridos >= 29) color = '#800020';
-
+     else if (diasTranscurridos >= 29 && diasTranscurridos <=90) color = '#f1948a';
+    else if (diasTranscurridos >= 91) color = '#800020';
+    
      facturasInvolucradasMap[factura.codigo] = { montoInvolucrado, porcentaje, diasTranscurridos, color };
      saldoPendiente -= montoInvolucrado;
    }
