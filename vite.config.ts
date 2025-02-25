@@ -1,17 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
-import path from 'path'
-import { fileURLToPath } from 'url'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': '/src',
     },
   },
   build: {
@@ -29,6 +24,6 @@ export default defineConfig({
   assetsInclude: ['**/*.jpg', '**/*.png', '**/*.svg'],
   base: '/', // Asegura que las rutas sean relativas a la raíz
   server: {
-    port: 3001, // Cambiamos a un puerto diferente
+    port: 3001,
   },
 })
