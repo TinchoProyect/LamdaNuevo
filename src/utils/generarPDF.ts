@@ -245,7 +245,7 @@ export function generarInformePDF(params: GenerarInformePDFParams) {
 
  // **Generación de Tabla de Movimientos**
  const rows = movimientosFiltrados.map((mov) => {
-   const esFactura = ['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante);
+   // const esFactura = ['FA', 'FB', 'FC', 'FD', 'FE'].includes(mov.nombre_comprobante);
    const colorHex = facturasInvolucradasMap[mov.codigo]?.color || '#FFFFFF';
    const bgColor = hexToRgb(colorHex);
    const isBold = !!facturasInvolucradasMap[mov.codigo];
