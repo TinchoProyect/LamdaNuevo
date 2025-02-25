@@ -11,7 +11,7 @@ export const Header = () => {
                     <div className="logo-section">
                         <div className="logo-wrapper">
                             <img
-                                src="/src/assets/Logo.jpg"
+                                src="/Logo.jpg"
                                 alt="Lamda Banking"
                                 className="logo"
                                 loading="lazy"
